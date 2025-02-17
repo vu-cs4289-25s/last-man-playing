@@ -1,18 +1,33 @@
 import React from "react";
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
 
 export default function Home() {
   return (
-    <div className="flex flex-col items-center justify-center bg-white p-6 rounded-lg shadow-md">
-      <h1 className="text-4xl font-bold mb-4">Last Man Playing</h1>
-      <p className="text-lg text-gray-700 mb-6">Join the ultimate showdown!</p>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+      {/* Header */}
+      <div className="w-full bg-gray-300 py-3 px-6">
+        <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
+      </div>
 
-      <div className="w-full max-w-xs space-y-4">
-        <Label>Username</Label>
-        <Input placeholder="Enter your username" className="w-full" />
-        <Button variant="default" className="w-full">Get Started</Button>
+      {/* Main Card */}
+      <div className="bg-white shadow-lg rounded-lg p-10 mt-10 w-[400px] flex flex-col items-center">
+        <h2 className="text-2xl font-semibold mb-6">WELCOME</h2>
+
+        {/* Buttons */}
+        <div className="flex flex-col w-full space-y-4">
+          <Button className="w-full bg-[#0D1117] text-white hover:bg-[#161B22]">
+            LOG IN
+          </Button>
+          <Button className="w-full bg-[#0D1117] text-white hover:bg-[#161B22]">
+            REGISTER
+          </Button>
+          <Button className="w-full bg-[#0D1117] text-white hover:bg-[#161B22]">
+            PLAY AS GUEST
+          </Button>
+          <Button className="w-full bg-[#0D1117] text-white hover:bg-[#161B22]">
+            HOW TO PLAY
+          </Button>
+        </div>
       </div>
     </div>
   );
