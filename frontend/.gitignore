@@ -1,24 +1,39 @@
-# Logs
-logs
+# Node Modules & Dependencies
+node_modules/
+package-lock.json
+
+# Build & Cache Files
+dist/
+.vite/
+.tailwind/
+.postcss-cache/
+
+# Logs & Debug Files
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Environment Variables (Secrets)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Editor directories and files
-.vscode/*
+# Editor & OS-Specific Files
+.vscode/
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+Thumbs.db
+
+# Misc
+coverage/
