@@ -1,6 +1,5 @@
 # Node Modules & Dependencies
 node_modules/
-package-lock.json
 
 # Build & Cache Files
 dist/
