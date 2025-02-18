@@ -5,6 +5,8 @@ import Register from "./pages/Register";
 import HowToPlay from "./pages/HowToPlay";
 import Profile from "./pages/Profile"; // <-- Import Profile Page
 import "./index.css";
+import Leaderboard from "./pages/Leaderboard";
+import LoadingLobby from "./pages/LoadingLobby";
 
 export default function App() {
   return (
@@ -14,7 +16,12 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/how-to-play" element={<HowToPlay />} />
-        <Route path="/profile" element={<Profile />} /> {/* Add Profile Route */}
+        <Route path="/profile" element={<Profile />} />{" "}
+        {/* Add Profile Route */}
+        <Route path="/leaderboard" element={<Leaderboard />} />{" "}
+        {/* Add Leaderboard Route after games are made */}
+        <Route path="/loadinglobby" element={<LoadingLobby />} />{" "}
+        {/* Add loading lobby Route after games state development*/}
       </Routes>
     </Router>
   );
