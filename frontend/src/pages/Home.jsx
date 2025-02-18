@@ -30,6 +30,9 @@ export default function Home() {
             <Button className="w-full" onClick={() => navigate("/how-to-play")}>
               HOW TO PLAY
             </Button>
+            <Button className="w-full" onClick={() => navigate("/profile")}>
+              PROFILE
+            </Button>
           </div>
         </div>
       </main>
