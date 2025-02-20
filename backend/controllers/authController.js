@@ -1,5 +1,3 @@
-// controllers/authController,js
-
 // TODO - Replace dummy values and placeholder code after DB Integration
 
 exports.loginUser = (req, res) => {
