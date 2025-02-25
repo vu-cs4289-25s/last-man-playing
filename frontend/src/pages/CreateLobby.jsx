@@ -1,87 +1,3 @@
-// import React, { useState } from "react"
-
-// function CreateLobby() {
-//   const [lobbyName, setLobbyName] = useState("")
-//   const [numPlayers, setNumPlayers] = useState(4)
-//   const [isPrivate, setIsPrivate] = useState(false)
-
-//   const handleCreateLobby = (event) => {
-//     event.preventDefault()
-
-//     fetch("/api/lobbies/create", {
-//       method: "POST",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify({
-//         name: lobbyName,
-//         maxPlayers: numPlayers,
-//         private: isPrivate
-//       }),
-//     })
-//       .then((res) => res.json())
-//       .then((newLobby) => {
-//         console.log("Lobby created:", newLobby)
-//       })
-//       .catch((err) => console.error("Error creating lobby:", err))
-//   }
-
-//   return (
-//     <div className="p-4">
-//       <h2 className="text-xl font-bold mb-4">Create a Lobby</h2>
-//       <form onSubmit={handleCreateLobby} className="space-y-4 w-full max-w-md">
-//         <div>
-//           <label className="block font-medium">Lobby Name</label>
-//           <input
-//             type="text"
-//             value={lobbyName}
-//             onChange={(e) => setLobbyName(e.target.value)}
-//             className="border px-2 py-1 w-full"
-//           />
-//         </div>
-
-//         <div>
-//           <label className="block font-medium"># of Players</label>
-//           <input
-//             type="number"
-//             min={2}
-//             value={numPlayers}
-//             onChange={(e) => setNumPlayers(Number(e.target.value))}
-//             className="border px-2 py-1 w-full"
-//           />
-//         </div>
-
-//         <div>
-//           <p className="block font-medium mb-1">Is this room private?</p>
-//           <label className="mr-4">
-//             <input
-//               type="radio"
-//               checked={isPrivate === true}
-//               onChange={() => setIsPrivate(true)}
-//             />{" "}
-//             Yes
-//           </label>
-//           <label>
-//             <input
-//               type="radio"
-//               checked={isPrivate === false}
-//               onChange={() => setIsPrivate(false)}
-//             />{" "}
-//             No
-//           </label>
-//         </div>
-
-//         <button
-//           type="submit"
-//           className="bg-indigo-600 text-white px-4 py-2 rounded"
-//         >
-//           Create
-//         </button>
-//       </form>
-//     </div>
-//   )
-// }
-
-// export default CreateLobby
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -137,11 +53,12 @@ export default function CreateLobby() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
-      {/* Top Navbar/Header */}
+      {/* Header */}
       <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
+        {/* Profile Icon */}
         <img
-          src="/api/placeholder/40/40"
+          src="https://via.placeholder.com/40" // Replace with actual profile image URL
           alt="Profile"
           className="w-10 h-10 rounded-full border-2 border-gray-500"
         />
@@ -159,6 +76,7 @@ export default function CreateLobby() {
               <div>
                 <label className="block mb-1 font-medium">Lobby Name</label>
                 <Input
+                  // add restrictions to lobby names
                   type="text"
                   value={lobbyName}
                   onChange={(e) => setLobbyName(e.target.value)}
