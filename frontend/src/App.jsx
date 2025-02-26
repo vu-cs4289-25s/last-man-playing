@@ -7,6 +7,8 @@ import Profile from "./pages/Profile"; // <-- Import Profile Page
 import "./index.css";
 import Leaderboard from "./pages/Leaderboard";
 import LoadingLobby from "./pages/LoadingLobby";
+import CreateLobby from "./pages/CreateLobby";
+import Lobbies from "./pages/Lobbies";
 
 export default function App() {
   return (
@@ -22,6 +24,8 @@ export default function App() {
         {/* Add Leaderboard Route after games are made */}
         <Route path="/loadinglobby" element={<LoadingLobby />} />{" "}
         {/* Add loading lobby Route after games state development*/}
+        <Route path="/createlobby" element={<CreateLobby />} />
+        <Route path="/lobbies" element={<Lobbies />} />
       </Routes>
     </Router>
   );

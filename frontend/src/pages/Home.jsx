@@ -26,7 +26,9 @@ export default function Home() {
             <Button className="w-full" onClick={() => navigate("/register")}>
               REGISTER
             </Button>
-            <Button className="w-full">PLAY AS GUEST</Button>
+            <Button className="w-full" onClick={() => navigate("/lobbies")}>
+              PLAY AS GUEST
+              </Button>
             <Button className="w-full" onClick={() => navigate("/how-to-play")}>
               HOW TO PLAY
             </Button>

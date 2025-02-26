@@ -6,11 +6,14 @@ import { Button } from "../components/ui/button";
 export default function Login() {
   return (
     <div className="flex flex-col items-center justify-start min-h-screen w-full bg-gray-100">
-      {/* Centered Navbar */}
-      <header className="w-full bg-gray-300 py-4 px-6 flex justify-center">
-        <h1 className="text-2xl font-bold tracking-wide text-center">
-          LAST MAN PLAYING
-        </h1>
+      {/* Top Navbar/Header */}
+      <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
+        <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
+        <img
+          src="/api/placeholder/40/40"
+          alt="Profile"
+          className="w-10 h-10 rounded-full border-2 border-gray-500"
+        />
       </header>
 
       {/* Centered Login Card */}
@@ -49,5 +52,5 @@ export default function Login() {
         </Card>
       </main>
     </div>
-  );
+  )
 }
