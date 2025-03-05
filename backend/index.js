@@ -4,8 +4,8 @@ const express = require('express');
 const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 3000;
-const db = require("./models");
 
+const db = require("./models");
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 
@@ -94,4 +94,3 @@ app.get("/lobbies/:id", (req, res) => {
     };
     res.json(lobby);
 });
-
