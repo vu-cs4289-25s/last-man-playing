@@ -23,7 +23,7 @@ export default function CreateLobby() {
     const newLobbyData = {
       name: finLobbyName,
       maxPlayers,
-      isPrivate,
+      private: isPrivate,
       numRounds,
     }
 
