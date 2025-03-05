@@ -9,7 +9,7 @@ const http = require('http');         // (1) Required for Socket.IO
 const { Server } = require('socket.io'); // (2) Import the Socket.IO server class
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
 
 const db = require('./models');
 const authRoutes = require('./routes/auth');
