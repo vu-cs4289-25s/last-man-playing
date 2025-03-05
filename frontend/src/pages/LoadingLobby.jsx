@@ -1,15 +1,12 @@
-// frontend/src/pages/LoadingLobby.jsx
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card } from "../components/ui/card";
+import { socket } from "../lib/socket"; // Import our Socket.IO client instance
 
 const PlayerCard = ({ username, isLoading, style, isReady = false }) => (
   <div
     style={style}
     className={`absolute bg-[#0D1117] text-white rounded-md px-4 py-2 flex items-center space-x-2 w-48 transform -translate-x-1/2 -translate-y-1/2
-    ${isLoading ? "opacity-70" : ""} ${
-      isReady ? "border-2 border-green-500" : ""
-    }`}
+    ${isLoading ? "opacity-70" : ""} ${isReady ? "border-2 border-green-500" : ""}`}
   >
     <img
       src="/api/placeholder/24/24"
@@ -32,6 +29,9 @@ const PlayerCard = ({ username, isLoading, style, isReady = false }) => (
 export default function LoadingLobby() {
   const [isAllPlayersReady, setIsAllPlayersReady] = useState(false);
 
+  // We'll manage players in state; you had mock data, but let's prepare for real-time updates
+  const [players, setPlayers] = useState([]);
+
   const calculatePosition = (index, total, radius) => {
     const angleInDegrees = 270 + (360 / total) * index;
     const angleInRadians = angleInDegrees * (Math.PI / 180);
@@ -41,51 +41,46 @@ export default function LoadingLobby() {
     };
   };
 
-  // Mock player data with different states
-  const mockPlayers = [
-    {
-      id: 1,
-      username: "DragonSlayer",
-      isReady: true,
-      isLoading: false,
-    },
-    {
-      id: 2,
-      username: "PixelPirate",
-      isReady: true,
-      isLoading: false,
-    },
-    {
-      id: 3,
-      username: "NinjaGamer",
-      isReady: false,
-      isLoading: true,
-    },
-    {
-      id: 4,
-      username: "CosmicWarrior",
-      isReady: false,
-      isLoading: true,
-    },
-    {
-      id: 5,
-      username: "MysticMage",
-      isReady: false,
-      isLoading: false,
-    },
-    {
-      id: 6,
-      username: "CyberKnight",
-      isReady: false,
-      isLoading: true,
-    },
-  ];
+  // On mount, connect socket & join the correct lobby
+  useEffect(() => {
+    const lobbyId = localStorage.getItem("lobbyId");
+    if (!lobbyId) {
+      console.error("No lobbyId found in localStorage!");
+      return;
+    }
 
-  // Add positions to players
-  const players = mockPlayers.map((player, index) => ({
-    ...player,
-    position: calculatePosition(index, mockPlayers.length, 35),
-  }));
+    // Connect only if not already connected
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    // Join the room for the correct lobby
+    socket.emit("join-lobby", lobbyId);
+
+    // Example: Listen for "lobby-update" from the server
+    socket.on("lobby-update", (data) => {
+      console.log("Received lobby-update:", data);
+      // data might include a list of players
+      if (data.players) {
+        const updatedPlayers = data.players.map((player, index) => ({
+          ...player,
+          position: calculatePosition(index, data.players.length, 35),
+        }));
+        setPlayers(updatedPlayers);
+      }
+    });
+
+    // Example: Listen for "players-ready" or similar event
+    socket.on("players-ready", () => {
+      setIsAllPlayersReady(true);
+    });
+
+    // Cleanup on unmount
+    return () => {
+      socket.off("lobby-update");
+      socket.off("players-ready");
+    };
+  }, []);
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen w-full bg-gray-100">
@@ -122,10 +117,10 @@ export default function LoadingLobby() {
             )}
           </div>
 
-          {/* Player Cards - Positioned in Circle */}
+          {/* Player Cards - mapped from "players" state */}
           {players.map((player) => (
             <PlayerCard
-              key={player.id}
+              key={player.id || player.username}
               username={player.username}
               isLoading={player.isLoading}
               isReady={player.isReady}
