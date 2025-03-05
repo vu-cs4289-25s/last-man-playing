@@ -45,7 +45,7 @@ const User = sequelize.define('User', {
         defaultValue: DataTypes.NOW
     }
 }, {
-    tableName: 'users',  // explicitly map this model to the 'users' table
+    tableName: 'users',
     timestamps: true    // Sequelize will manage createdAt/updatedAt
 });
 

@@ -1,10 +1,14 @@
+require('dotenv').config({path: '../.env' });
+
 const express = require('express');
 const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 3000;
+const db = require("./models");
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
+
 
 app.use(cors());
 app.use(express.json());
@@ -14,6 +18,21 @@ app.use('/user', userRoutes);
 app.get('/', (req, res) => {
     res.send('Server running!');
 });
+
+db.sequelize.sync({ alter: true })
+    .then(() => {
+        console.log('Database synchronized! (alter: true)');
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+        });
+    })
+    .catch((err) => {
+        console.log('Host:', process.env.SUPABASE_DB_HOST);
+        console.log('Port:', process.env.SUPABASE_DB_PORT);
+        console.log('Error syncing database', err);
+    })
+
+// Lobby backend code
 
 let lobbies = [];
 let nextLobbyId = 1;
@@ -75,9 +94,4 @@ app.get("/lobbies/:id", (req, res) => {
     };
     res.json(lobby);
 });
-
-app.listen(PORT, () => {
-    console.log(`Server running on port: ${PORT}`);
-});
-
 

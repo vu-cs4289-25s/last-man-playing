@@ -1,12 +1,13 @@
 const {Sequelize} = require('sequelize');
+
 const sequelize = new Sequelize(
-    process.env.DB_NAME,
-    process.env.DB_USERNAME,
-    process.env.DB_PASSWORD,
+    process.env.SUPABASE_DB_NAME,
+    process.env.SUPABASE_DB_USER,
+    process.env.SUPABASE_DB_PASSWORD,
     {
-        host: process.env.DB_HOST,
+        host: process.env.SUPABASE_DB_HOST,
         dialect: 'postgres',
-        port: process.env.DB_PORT,
+        port: process.env.SUPABASE_DB_PORT,
         logging: false,
     }
 );
