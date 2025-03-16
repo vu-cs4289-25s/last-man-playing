@@ -32,14 +32,21 @@ export default function Register() {
                 <label htmlFor="username" className="text-sm font-medium">
                   Username
                 </label>
-                <Input id="username" placeholder="Enter your username" />
+                <Input id="username" placeholder="Enter your username"/>
+              </div>
+
+              <div className="flex flex-col">
+                <label htmlFor="email" className="text-sm font-medium">
+                  Email
+                </label>
+                <Input id="username" placeholder="Enter your email"/>
               </div>
 
               <div className="flex flex-col">
                 <label htmlFor="password" className="text-sm font-medium">
                   Password
                 </label>
-                <Input id="password" type="password" placeholder="Enter your password" />
+                <Input id="password" type="password" placeholder="Enter your password"/>
               </div>
 
               {/* Submit Button */}
