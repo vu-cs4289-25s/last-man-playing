@@ -46,7 +46,7 @@ exports.registerUser = async (req, res) => {
 
         const existingUser = await db.User.findOne({ where: { email } });
         if (existingUser) {
-            return res.status(409).json({ message: "Email is already being used" });
+            return res.status(409).json({ message: "Email is already in use" });
         }
 
         const saltRounds = 10;
