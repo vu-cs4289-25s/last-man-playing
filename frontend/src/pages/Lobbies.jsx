@@ -267,6 +267,10 @@ export default function Lobbies () {
     navigate("/CreateLobby")
   }
 
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    navigate("/login")
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -274,11 +278,16 @@ export default function Lobbies () {
       <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
         {/* Profile Icon */}
-        <img
-          src="https://via.placeholder.com/40" // Replace with actual profile image URL
-          alt="Profile"
-          className="w-10 h-10 rounded-full border-2 border-gray-500"
-        />
+        <div className="flex items-center gap-4">
+          <img
+              src="https://via.placeholder.com/40" // Replace with actual profile image URL
+              alt="Profile"
+              className="w-10 h-10 rounded-full border-2 border-gray-500"
+          />
+          <Button onClick={handleLogout} className="bg-red-500 text-white hover:bg-red-600">
+            Logout
+          </Button>
+        </div>
       </header>
 
       {/* Main Content */}
