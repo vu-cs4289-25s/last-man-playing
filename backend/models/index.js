@@ -7,6 +7,6 @@ const db = {};
 db.sequelize = sequelize;
 db.User = User;
 db.Lobby = Lobby;
-db.LobbyParticpants = LobbyParticipants;
+db.LobbyParticipants = LobbyParticipants;
 
 module.exports = db;
