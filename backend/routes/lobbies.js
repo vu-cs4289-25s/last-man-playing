@@ -1,7 +1,15 @@
 const express = require('express');
 const router = express.Router();
+const authMiddleware = require("../middleware/authMiddleware");
 
-const {getLobby, getPublicLobbies, createLobby, joinLobby, leaveLobby, removePlayer} = require("../controllers/lobbiesController");
+const {
+    getLobby,
+    getPublicLobbies,
+    createLobby,
+    joinLobby,
+    leaveLobby,
+    removePlayer
+ } = require("../controllers/lobbiesController");
 
 // GET /lobbies/:id
 router.get('/:id', getLobby);
@@ -10,10 +18,10 @@ router.get('/:id', getLobby);
 router.get('/public', getPublicLobbies);
 
 // POST /lobbies/create
-router.post('/createLobby', createLobby);
+router.post('/createLobby', authMiddleware, createLobby);
 
 // POST /lobbies/join
-router.post('/joinLobby', joinLobby);
+router.post('/joinLobby', authMiddleware, joinLobby);
 
 // POST /lobbies/leave
 router.post('/leaveLobby', leaveLobby);

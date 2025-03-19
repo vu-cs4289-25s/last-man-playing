@@ -17,10 +17,12 @@ const LobbyParticipants = sequelize.define("LobbyParticipants", {
 },{
     tableName: 'lobby_participants',
     timestamps: false,
-    indexes: {
+    indexes: [
+        {
         unique: true,
         fields: ['lobby_id', 'user_id'],
-    }
+        }
+    ]
 });
 
 module.exports = LobbyParticipants;

@@ -1,17 +1,21 @@
 const jwt = require("jsonwebtoken");
+const { createGuestUser } =
 
-module.exports = (req, res, next) => {
+module.exports = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
 
         if (!authHeader) {
-            return res.status(401).json({ message: 'No token, authorization denied' });
+            // No authorization header, create guest user
+            req.user = await createGuestUser();
+            return next();
         }
 
         const token = authHeader.split(' ')[1];
-
         if (!token) {
-            return res.status(401).json({ message: 'Token is missing' });
+            // No token, create guest user
+            req.user = await createGuestUser();
+            return next();
         }
 
         const decoded = jwt.decode(token, process.env.JWT_SECRET)
