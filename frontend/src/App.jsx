@@ -9,7 +9,7 @@ import Leaderboard from "./pages/Leaderboard";
 import LoadingLobby from "./pages/LoadingLobby";
 import CreateLobby from "./pages/CreateLobby";
 import Lobbies from "./pages/Lobbies";
-import RockPaperScissors from "./pages/RockPaperScissors";f
+import RockPaperScissors from "./pages/RockPaperScissors";
 
 export default function App() {
   return (
