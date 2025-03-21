@@ -1,3 +1,5 @@
+// frontend/src/pages/CreateLobby.jsx
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -6,50 +8,54 @@ import { Button } from "../components/ui/button";
 
 export default function CreateLobby() {
   // change with data later
-  const username = "Nat"
+  const username = "Nat";
 
   // default state
-  const [lobbyName, setLobbyName] = useState("")
-  const [maxPlayers, setMaxPlayers] = useState(2)
-  const [isPrivate, setIsPrivate] = useState(false)
-  const numRounds = maxPlayers - 1
-  const navigate = useNavigate()
+  const [lobbyName, setLobbyName] = useState("");
+  const [maxPlayers, setMaxPlayers] = useState(2);
+  const [isPrivate, setIsPrivate] = useState(false);
+  const numRounds = maxPlayers - 1;
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e) => { 
-    e.preventDefault()
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-    const finLobbyName = lobbyName.trim() || `${username}'s Lobby`
+    const finLobbyName = lobbyName.trim() || `${username}'s Lobby`;
 
+    // Changed "isPrivate" to "private" so the backend receives { private: boolean }
     const newLobbyData = {
       name: finLobbyName,
       maxPlayers,
       private: isPrivate,
       numRounds,
-    }
+    };
 
     try {
       const res = await fetch("/lobbies/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newLobbyData),
-      })
+      });
 
       if (!res.ok) {
-        throw new Error(`Error Creating Lobby: ${res.status}`)
+        throw new Error(`Error Creating Lobby: ${res.status}`);
       }
 
-      const createdLobby = await res.json()
-      console.log("Lobby created successfully", createdLobby)
+      const createdLobby = await res.json();
+      console.log("Lobby created successfully", createdLobby);
 
-      navigate("/loading-lobby")
+      // Save the newly created lobby ID for later
+      localStorage.setItem("lobbyId", createdLobby.id);
+
+      navigate("/loading-lobby");
     } catch (err) {
-      console.error("Create Lobby Error:", err)
+      console.error("Create Lobby Error:", err);
     }
-  }
+  };
 
   const handleBack = () => {
-    navigate(-1)
-  }
+    navigate(-1);
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
@@ -147,5 +153,5 @@ export default function CreateLobby() {
         </Card>
       </main>
     </div>
-  )
+  );
 }

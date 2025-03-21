@@ -1,64 +1,32 @@
-// routes/lobbies.js
-const express = require("express");
+const express = require('express');
 const router = express.Router();
+const authMiddleware = require("../middleware/authMiddleware");
 
-let lobbies = [];
-let nextLobbyId = 1;
+const {
+    getLobby,
+    getPublicLobbies,
+    createLobby,
+    joinLobby,
+    leaveLobby,
+    removePlayer
+ } = require("../controllers/lobbiesController");
 
-router.get("/public", (req, res) => {
-  const publicLobbies = lobbies.filter((lobby) => !lobby.private);
-  res.json(publicLobbies);
-});
+// GET /lobbies/:id
+router.get('/:id', getLobby);
 
-router.post("/create", (req, res) => {
-  const { name, maxPlayers, private: isPrivate } = req.body;
+// GET /lobbies/public
+router.get('/public', getPublicLobbies);
 
-  if (!name || !maxPlayers) {
-    return res.status(400).json({ error: "Missing required fields" });
-  };
+// POST /lobbies/create
+router.post('/createLobby', authMiddleware, createLobby);
 
-  const newLobby = {
-    id: nextLobbyId++,
-    name,
-    maxPlayers: parseInt(maxPlayers, 10),
-    private: !!isPrivate,
-    playerCount: 0,
-    players: [],
-  };
+// POST /lobbies/join
+router.post('/joinLobby', authMiddleware, joinLobby);
 
-  lobbies.push(newLobby);
-  console.log("Lobby created:", newLobby);
-  res.status(201).json(newLobby);
-});
+// POST /lobbies/leave
+router.post('/leaveLobby', leaveLobby);
 
-router.post("/join", (req, res) => {
-  const { lobbyId, userId } = req.body;
-  if (!lobbyId) {
-    return res.status(400).json({ error: "lobbyId is required" });
-  };
-
-  const lobby = lobbies.find((lob) => lob.id === parseInt(lobbyId, 10));
-  if (!lobby) {
-    return res.status(404).json({ error: "Lobby not found" });
-  };
-
-  if (lobby.playerCount >= lobby.maxPlayers) {
-    return res.status(403).json({ error: "Lobby is full" });
-  };
-
-  lobby.playerCount += 1;
-  lobby.players.push(userId || `user${Math.floor(Math.random() * 9999)}`);
-  console.log("User joined lobby:", lobby);
-  res.json({ message: "Joined lobby successfully", lobby });
-});
-
-router.get("/:id", (req, res) => {
-  const lobbyId = parseInt(req.params.id, 10);
-  const lobby = lobbies.find((lob) => lob.id === lobbyId);
-  if (!lobby) {
-    return res.status(404).json({ error: "Lobby not found" });
-  }
-  res.json(lobby);
-})
+// POST /lobbies/remove
+router.post('/removePlayer', removePlayer);
 
 module.exports = router;

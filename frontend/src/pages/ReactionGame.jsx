@@ -1,117 +1,223 @@
-import React from "react";
-import { Button } from "../components/ui/button";
+import React, { useState, useEffect, useRef } from "react";
+// import axios from "axios"; // for sending final results to backend
 
-// const TurnsLeft = ({ turns }) => (
-//     <div className="flex items-center justify-between w-full p-2 mb-2">
-//        <span style="font-family:lexend zetta;" className="text-4xl font-extrabold">
-//         {turns}
-//         </span> 
-//     </div>
-// );
+// no shadcn
+// error with handling double/triple clicks and not properly exiting 
 
-// appears once game starts
-function TurnsLeft({ turns }) {
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+export default function ReactionGame() {
+  const [gamePhase, setGamePhase] = useState("preGame"); 
+  const [preGameTimeLeft, setPreGameTimeLeft] = useState(15); 
+  const [color, setColor] = useState("green");
+  const [colorCycleTimeLeft, setColorCycleTimeLeft] = useState(0); 
+  const [roundsCompleted, setRoundsCompleted] = useState(0); 
+  const [strikes, setStrikes] = useState(0);
+  const [reactionTimes, setReactionTimes] = useState([]); 
+  const lastColorSwitchRef = useRef(null);
+  const [isHolding, setIsHolding] = useState(false);
+  const [gameStartTime, setGameStartTime] = useState(null);
+  const [finalMessage, setFinalMessage] = useState("");
+
+  useEffect(() => {
+    if (gamePhase !== "preGame") return;
+    if (preGameTimeLeft <= 0) {
+      addStrike();
+      setPreGameTimeLeft(15);
+    }
+
+    const timerId = setInterval(() => {
+      setPreGameTimeLeft((t) => t - 1);
+    }, 1000);
+
+    return () => clearInterval(timerId);
+  }, [gamePhase, preGameTimeLeft]);
+
+  const handleMouseDownPreGame = () => {
+    setGamePhase("inGame");
+    setGameStartTime(Date.now());
+    const randomDuration = randomInt(6, 15);
+    setColorCycleTimeLeft(randomDuration);
+    lastColorSwitchRef.current = Date.now();
+    setPreGameTimeLeft(15);
+    setIsHolding(true);
+  };
+
+  useEffect(() => {
+    if (gamePhase !== "inGame") return;
+    if (strikes >= 3 || roundsCompleted >= 10) return;
+    if (colorCycleTimeLeft <= 0) {
+      handleEndOfColorCycle();
+      return;
+    }
+
+    const timerId = setInterval(() => {
+      setColorCycleTimeLeft((t) => t - 1);
+    }, 1000);
+
+    return () => clearInterval(timerId);
+  }, [gamePhase, colorCycleTimeLeft, strikes, roundsCompleted]);
+
+  function handleEndOfColorCycle() {
+    let success = false;
+    if (color === "green") {
+      success = isHolding;
+    } else {
+      success = !isHolding;
+    }
+
+    if (!success) {
+      addStrike();
+    } else {
+      const reaction = Date.now() - lastColorSwitchRef.current;
+      setReactionTimes((arr) => [...arr, reaction]);
+      setRoundsCompleted((r) => r + 1);
+    }
+
+    const newColor = color === "green" ? "red" : "green";
+    setColor(newColor);
+
+    const randomDuration = randomInt(6, 15);
+    setColorCycleTimeLeft(randomDuration);
+    lastColorSwitchRef.current = Date.now();
+
+    if (strikes + 1 >= 3 && !success) {
+      endGame(false);
+    } else if (roundsCompleted + 1 >= 10 && success) {
+      endGame(true);
+    }
+  }
+
+  function addStrike() {
+    setStrikes((s) => s + 1);
+  }
+
+  function endGame(completedAllRounds) {
+    setGamePhase("done");
+    const totalGameTimeSec = ((Date.now() - gameStartTime) / 1000).toFixed(2);
+
+    if (!completedAllRounds) {
+      setFinalMessage(
+        `You earned 3 strikes! Game over. You lasted ${totalGameTimeSec} seconds.`
+      );
+    } else {
+      const avgMs =
+        reactionTimes.reduce((sum, val) => sum + val, 0) / reactionTimes.length;
+      const avgSec = (avgMs / 1000).toFixed(3);
+      setFinalMessage(
+        `Congratulations! You completed 10 color changes.\n` +
+          `Average Reaction Time: ${avgSec} seconds.\n` +
+          `Total Game Time: ${totalGameTimeSec} s.`
+      );
+    }
+
+    const payload = {
+      completedAllRounds,
+      totalTime: totalGameTimeSec,
+      reactionTimes,
+      strikes,
+    };
+    axios.post("/api/gameResults", payload).catch((err) => {
+      console.error("Error posting results:", err);
+    });
+  }
+
+  function handleMouseDownInGame() {
+    if (color === "green") {
+      setIsHolding(true);
+    } else {
+      addStrike();
+    }
+  }
+
+  function handleMouseUpInGame() {
+    if (color === "red") {
+      setIsHolding(false);
+    } else {
+      addStrike();
+    }
+  }
+
+  if (gamePhase === "preGame") {
     return (
-      <div className="text-xl font-bold">
-        {turns}
+      <div className="p-4">
+        <h1>LAST MAN PLAYING</h1>
+        <p>RED LIGHT GREEN LIGHT</p>
+        <p>{preGameTimeLeft} seconds to start</p>
+        <button
+          style={{ backgroundColor: "blue", color: "white" }}
+          onMouseDown={handleMouseDownPreGame}
+        >
+          HOLD DOWN TO START
+        </button>
+
+        <div>
+          {/* Display strikes */}
+          {Array.from({ length: 3 }).map((_, i) => {
+            const active = i < strikes;
+            return (
+              <span key={i} style={{ color: active ? "red" : "brown" }}>
+                X{" "}
+              </span>
+            );
+          })}
+        </div>
       </div>
     );
-};
+  }
 
-// create div container
-// three x's - xone xtwo xthree
-// const Strikes = ({ strikes }) => (
-//     <div className="flex items-center justify-between w-full p-2 mb-2">
-//     <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
-//       <span className="text-2xl">+</span>
-//     </div>
-//     <span className="text-sm font-medium">{points} points</span>
-//   </div>
-// );
-//const strikes = ({}) => (
-    // 0, 1, 2, 3 or out and game ends
-    // record how many total seconds in game lasted
-//);
-
-function Strikes({ strikes }) {
-    return {
-
-    };
-};
-
-//?
-// hold down mouse on green
-// turn green = time mouse clicked - time color changed
-//const greenButton = ({}) => (
-// button change ui
-// hold and green
-//);
-
-// let go mouse on red
-// turn red = time mouse let go - time color changed
-//const redButton = ({}) => (
-    // button change ui
-    // let go and red
-//);
-
-// get data from other players
-// compare reaction speeds
-// if multiple people out, compare time stayed in game
-
-//# of times button switches color
-// random time interval of when to switch color
-
-// take avg of raction spees
-// rank based on fastest to slowest time avg
-
-// vars
-// 15 seconds to start game (click on button) - if not pressed in 15 secs + strike + reset to 15 secs
-// total running time of game per person - starts when player hits start - cuts off at successful end or if players acheives three strikes
-// number of times the button changes color - var displayed as text
-// avg list - for each color change record reaction time
-// var reaction time - start count at color change
-// strike - strike if let go during hold, click again but do not count as seperate time, strike if color changes and you have not let go/held, STRIKE IF MOUSE CLICKED DURING LET GO
-// number of turns left - display as text - edit numer on change
-
-export default function ReactionGame(){
-    const [time, setTime] = useState(15);
-    const [turns, setTurns] = useState(10);
-    const [strikes, setStrikes] = useState(0);
-    const [buttonColor, setButtonColor] = useState("green");
-    const [buttonLabel, setButtonLabel] = useState("HOLD");
-
-    const toggleButtonState = () => {
-        if (buttonColor === "green") {
-          setButtonColor("red")
-          setButtonLabel("LET GO")
-        } else {
-          setButtonColor("green")
-          setButtonLabel("HOLD")
-        }
-      }
-
-      const addStrike = () => {
-        if (strikes < 3) {
-          setStrikes(strikes + 1)
-        }
-      }
-
-    return(
-    <div className="flex flex-col items-center justify-start min-h-screen w-full bg-gray-100">
-
-      {/* Header */}
-      <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
-        <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
-        <div className="flex items-center space-x-4">
-          <img
-            src="/api/placeholder/40/40"
-            alt="Profile"
-            className="w-10 h-10 rounded-full border-2 border-gray-500"
-          />
-        </div>
-      </header>
-
-    </div>
-
+  if (gamePhase === "done") {
+    return (
+      <div className="p-4">
+        <h1>LAST MAN PLAYING</h1>
+        <p>{finalMessage}</p>
+      </div>
     );
+  }
+
+  return (
+    <div className="p-4">
+      <h1>LAST MAN PLAYING</h1>
+      <p>RED LIGHT GREEN LIGHT</p>
+
+      <p>Color Changes Completed: {roundsCompleted}/10</p>
+      <p>Strikes: {strikes}/3</p>
+
+      <div>
+        {/* Show the color cycle time left */}
+        <h2>{colorCycleTimeLeft}</h2>
+
+        {/* The big button */}
+        <button
+          style={{
+            backgroundColor: color === "green" ? "green" : "red",
+            color: "white",
+            width: "200px",
+            height: "200px",
+            fontSize: "1.5rem",
+            borderRadius: "50%",
+          }}
+          onMouseDown={handleMouseDownInGame}
+          onMouseUp={handleMouseUpInGame}
+        >
+          {color === "green" 
+            ? (isHolding ? "WAIT" : "HOLD") 
+            : (isHolding ? "WAIT" : "LET GO")}
+        </button>
+      </div>
+
+      <div className="mt-4">
+        {Array.from({ length: 3 }).map((_, i) => {
+          const active = i < strikes;
+          return (
+            <span key={i} style={{ color: active ? "red" : "brown", fontSize: "2rem", marginRight: 5 }}>
+              X
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
 }

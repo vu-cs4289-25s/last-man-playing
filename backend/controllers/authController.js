@@ -1,46 +1,30 @@
-// TODO - Replace dummy values and placeholder code after DB Integration
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const db = require('../models');
 
-exports.loginUser = (req, res) => {
+exports.loginUser = async (req, res) => {
     try {
-        const { user, pass } = req.body;
+        const { username, password } = req.body;
 
-        if (!user || !pass) {
-            return res.status(400).json({ message: "Missing username or password"});
+        if (!username || !password) {
+            return res.status(400).json({message: "Missing username or password"});
         }
 
-
-        /**
-         * Check if the user exists in the database. The database is not connected so as
-         * of right now we will use dummy data.
-         * Placeholder code, NOT to be used for production
-         **/
-
-        const dummyUser = {
-            username: 'dummyUser',
-            passwordHash: 'somehashedpassword'
-        };
-
-        if (!dummyUser) {
-            return res.status(404).json({ message: "User not found"});
-        }
-
-        /**
-         * Compare password with stored hash
-         * Placeholder code, NOT to be used for production
-         **/
-
-        const isPasswordValid = pass === 'plaintext'; // Placeholder text
-
-        if (!isPasswordValid) {
+        const existingUser = await db.User.findOne({ where: { username } });
+        if (!existingUser) {
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
-        /**
-         * Generate a session/token
-         * Placeholder code, NOT to be used for production
-         **/
+        const isPasswordValid = await bcrypt.compare(password, existingUser.password_hash);
+        if (!isPasswordValid) {
+            return res.status(401).json({message: "Invalid credentials"});
+        }
 
-        const token = 'dummy-jwt-token';
+        const token = jwt.sign(
+            {userId: existingUser.user_id},
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
+        );
 
         return res.json({
             message: 'Login successful',
@@ -52,55 +36,40 @@ exports.loginUser = (req, res) => {
     }
 };
 
-exports.registerUser = (req, res) => {
+exports.registerUser = async (req, res) => {
     try {
-        const { user, pass } = req.body;
+        const {username, email, password} = req.body;
 
-        if (!user || !pass) {
-            return res.status(400).json({ message: "Username and password are required"});
+        if (!username || !email || !password) {
+            return res.status(400).json({ message: "All fields are required"});
         }
 
-        /**
-         * Check if the user exists
-         * Will query the DB when it exists
-         * Placeholder code, NOT to be used for production
-         **/
-
-        const existingUser = null;
-
+        const existingUser = await db.User.findOne({ where: { email } });
         if (existingUser) {
-            return res.status(409).json({ message: "User already exist" });
+            return res.status(409).json({ message: "Email is already in use" });
         }
 
-        /**
-         * Hash the password
-         * Will finish with DB integration
-         * Placeholder code, NOT to be used for production
-         **/
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-        const hashedPassword = 'fakeHashedPassword';
+        const newUser = await db.User.create({
+            username,
+            email,
+            password_hash: hashedPassword
+        });
 
-        /**
-         * Create and save the new user in the DB
-         * Will create User models
-         * Placeholder code, NOT to be used for production
-         **/
-
-        const newUser = {
-            user_id: 'some-unique-id',
-            user,
-            password_hash: hashedPassword,
-        }
+        const token = jwt.sign(
+            {userId: newUser.user_id},
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
+        );
 
         return res.status(201).json({
             message: 'User registered successfully',
-            user: {
-                id: newUser.user_id,
-                username: newUser.user,
-            }
+            token,
         });
     } catch (error) {
-        console.error(error);
+        console.error('Error in registerUser:', error);
         return res.status(500).json({ message: 'Internal Server Error' });
     }
 };
