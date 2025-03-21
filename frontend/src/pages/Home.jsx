@@ -37,6 +37,11 @@ export default function Home() {
             <Button className="w-full" onClick={() => navigate("/profile")}>
               PROFILE
             </Button>
+            // frontend/src/pages/Home.jsx
+
+          <Button className="w-full" onClick={() => navigate("/rps")}>
+            PLAY RPS
+          </Button>
           </div>
         </div>
       </main>
