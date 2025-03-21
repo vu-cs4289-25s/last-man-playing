@@ -3,20 +3,20 @@ import { Button } from "../components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 
 export default function RockPaperScissors() {
-  // State for target rounds (i.e. score needed to win); default is 3 rounds.
+  // State for target rounds (i.e. wins required); default is 3.
   const [targetRounds, setTargetRounds] = useState(3);
 
-  // Score states
+  // Score state
   const [userScore, setUserScore] = useState(0);
   const [cpuScore, setCpuScore] = useState(0);
 
-  // How many rounds have been played
+  // Number of rounds played so far
   const [roundCount, setRoundCount] = useState(0);
 
-  // Store round history as an array of objects
+  // History for each round (for review)
   const [roundHistory, setRoundHistory] = useState([]);
 
-  // Current round info
+  // Current round move states
   const [currentUserMove, setCurrentUserMove] = useState(null);
   const [currentCpuMove, setCurrentCpuMove] = useState(null);
   const [currentRoundWinner, setCurrentRoundWinner] = useState(null);
@@ -25,21 +25,23 @@ export default function RockPaperScissors() {
   const [gameOver, setGameOver] = useState(false);
   const [finalWinner, setFinalWinner] = useState(null);
 
-  // Mapping of moves to emojis
+  // This state determines if we're in the "revealing" (or thinking) phase.
+  const [isRevealing, setIsRevealing] = useState(false);
+
+  // Mapping moves to emojis for a fun display
   const moveEmoji = {
     rock: "✊",
     paper: "✋",
     scissors: "✌️",
   };
 
-  // Returns a random move from "rock", "paper", or "scissors"
+  // Returns a random move for the CPU.
   const getCpuMove = () => {
     const moves = ["rock", "paper", "scissors"];
-    const randomIndex = Math.floor(Math.random() * moves.length);
-    return moves[randomIndex];
+    return moves[Math.floor(Math.random() * moves.length)];
   };
 
-  // Determines the round winner: returns "User", "CPU", or "Tie"
+  // Simple winner logic: returns "User", "CPU", or "Tie"
   const computeWinner = (userMove, cpuMove) => {
     if (userMove === cpuMove) return "Tie";
     if (
@@ -52,43 +54,53 @@ export default function RockPaperScissors() {
     return "CPU";
   };
 
-  // Called when the user clicks one of the move buttons
+  // Called when the user clicks a move.
   const handleUserChoice = (userMove) => {
-    if (gameOver) return; // Do nothing if game is over
+    if (gameOver || isRevealing) return; // Prevent multiple clicks or moves after game over
 
-    const cpuMove = getCpuMove();
-    const winner = computeWinner(userMove, cpuMove);
-
-    // Update the score if there's a winner
-    if (winner === "User") setUserScore((prev) => prev + 1);
-    else if (winner === "CPU") setCpuScore((prev) => prev + 1);
-
-    // Increment the round count and save round details
-    const newRoundCount = roundCount + 1;
-    setRoundCount(newRoundCount);
+    // Immediately set the user's move.
     setCurrentUserMove(userMove);
-    setCurrentCpuMove(cpuMove);
-    setCurrentRoundWinner(winner);
+    // Clear the CPU move (we'll show a placeholder meanwhile).
+    setCurrentCpuMove(null);
+    setCurrentRoundWinner(null);
+    setIsRevealing(true);
 
-    const newRound = {
-      round: newRoundCount,
-      userMove,
-      cpuMove,
-      winner,
-    };
-    setRoundHistory((prev) => [...prev, newRound]);
+    // Wait 3 seconds to simulate the CPU "thinking" with an animation.
+    setTimeout(() => {
+      const cpuMove = getCpuMove();
+      const winner = computeWinner(userMove, cpuMove);
 
-    // Check if either side has reached the target rounds
-    if (winner === "User" && userScore + 1 >= targetRounds) {
-      setGameOver(true);
-      setFinalWinner("User");
-    } else if (winner === "CPU" && cpuScore + 1 >= targetRounds) {
-      setGameOver(true);
-      setFinalWinner("CPU");
-    }
+      // Update scores.
+      if (winner === "User") setUserScore((prev) => prev + 1);
+      else if (winner === "CPU") setCpuScore((prev) => prev + 1);
+
+      const newRoundCount = roundCount + 1;
+      setRoundCount(newRoundCount);
+      setCurrentCpuMove(cpuMove);
+      setCurrentRoundWinner(winner);
+      setIsRevealing(false);
+
+      // Save the round details.
+      const newRound = {
+        round: newRoundCount,
+        userMove,
+        cpuMove,
+        winner,
+      };
+      setRoundHistory((prev) => [...prev, newRound]);
+
+      // Check for game over (if either score reaches the target)
+      if (winner === "User" && userScore + 1 >= targetRounds) {
+        setGameOver(true);
+        setFinalWinner("User");
+      } else if (winner === "CPU" && cpuScore + 1 >= targetRounds) {
+        setGameOver(true);
+        setFinalWinner("CPU");
+      }
+    }, 3000);
   };
 
-  // Resets the entire game state
+  // Resets the entire game state.
   const handleReset = () => {
     setTargetRounds(3);
     setUserScore(0);
@@ -100,12 +112,13 @@ export default function RockPaperScissors() {
     setCurrentRoundWinner(null);
     setGameOver(false);
     setFinalWinner(null);
+    setIsRevealing(false);
   };
 
-  // Called when the user changes the game mode (1, 3, or 5 rounds)
+  // When user changes the target (1, 3, or 5 rounds), reset the game.
   const handleTargetChange = (e) => {
     const rounds = parseInt(e.target.value, 10);
-    handleReset(); // Reset game state when mode is changed
+    handleReset();
     setTargetRounds(rounds);
   };
 
@@ -118,12 +131,12 @@ export default function RockPaperScissors() {
 
       {/* Main Game Container */}
       <main className="flex-1 flex flex-col items-center py-6 w-full max-w-4xl">
-        {/* Game Settings & Current Status */}
         <Card className="w-full mb-6 p-4 shadow-lg">
           <CardHeader>
             <CardTitle className="text-center text-2xl font-bold">Rock-Paper-Scissors</CardTitle>
           </CardHeader>
           <CardContent>
+            {/* Game Mode Selection */}
             <div className="mb-4 text-center">
               <label className="mr-2 font-medium">Select Rounds to Win:</label>
               <select
@@ -137,17 +150,28 @@ export default function RockPaperScissors() {
               </select>
             </div>
 
+            {/* Score Display */}
             <div className="mb-4 text-center">
               <span className="mr-4 font-semibold">Your Score: {userScore}</span>
               <span className="font-semibold">CPU Score: {cpuScore}</span>
             </div>
 
-            {/* Display current round result if any round has been played */}
-            {roundCount > 0 && (
+            {/* Current Round Display with Animation */}
+            <div className="mb-4 text-center flex justify-around items-center">
+              {/* User move area */}
+              <div className={`text-4xl ${isRevealing ? "shake" : ""}`}>
+                {currentUserMove ? moveEmoji[currentUserMove] : "❔"}
+              </div>
+              <div className="text-2xl mx-4">vs.</div>
+              {/* CPU move area */}
+              <div className={`text-4xl ${isRevealing ? "shake" : ""}`}>
+                {currentCpuMove ? moveEmoji[currentCpuMove] : (isRevealing ? "❔" : "🤖")}
+              </div>
+            </div>
+
+            {/* Round Result Message */}
+            {roundCount > 0 && !isRevealing && (
               <div className="text-center mb-4">
-                <p className="font-semibold">
-                  Round {roundCount}: You chose <span>{moveEmoji[currentUserMove]}</span> vs. CPU chose <span>{moveEmoji[currentCpuMove]}</span>
-                </p>
                 {currentRoundWinner === "Tie" ? (
                   <p className="text-blue-600 font-bold">It's a Tie!</p>
                 ) : currentRoundWinner === "User" ? (
@@ -160,18 +184,18 @@ export default function RockPaperScissors() {
 
             {/* Move Buttons */}
             <div className="flex flex-row justify-center space-x-4 mb-4">
-              <Button onClick={() => handleUserChoice("rock")}>
+              <Button onClick={() => handleUserChoice("rock")} disabled={isRevealing || gameOver}>
                 ✊ Rock
               </Button>
-              <Button onClick={() => handleUserChoice("paper")}>
+              <Button onClick={() => handleUserChoice("paper")} disabled={isRevealing || gameOver}>
                 ✋ Paper
               </Button>
-              <Button onClick={() => handleUserChoice("scissors")}>
+              <Button onClick={() => handleUserChoice("scissors")} disabled={isRevealing || gameOver}>
                 ✌️ Scissors
               </Button>
             </div>
 
-            {/* Final Game Over Message */}
+            {/* Game Over Message */}
             {gameOver && (
               <div className="text-center mb-4">
                 <p className="text-2xl font-bold">
@@ -180,7 +204,7 @@ export default function RockPaperScissors() {
               </div>
             )}
 
-            {/* Reset Game Button */}
+            {/* Reset Button */}
             <div className="flex justify-center">
               <Button onClick={handleReset} className="bg-gray-200 text-gray-700 hover:bg-gray-300">
                 Reset Game
