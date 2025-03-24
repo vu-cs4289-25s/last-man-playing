@@ -238,11 +238,22 @@ export default function Lobbies () {
   const navigate = useNavigate()
 
   useEffect(() => {
-    fetch ("/api/lobbies/public").then((res) => res.json()).then((data) => {setLobbies(data)})
-    .catch((error) => {console.error("Lobbies error:", error)    
-    })
-
-  }, [])
+    fetch("/api/lobbies/public")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setLobbies(data);
+        } else {
+          console.error("Unexpected response format:", data);
+          setLobbies([]);
+        }
+      })
+      .catch((error) => {
+        console.error("Lobbies error:", error);
+        setLobbies([]);
+      });
+  }, []);
+  
 
   const filteredLobbies = lobbies.filter((lobby) =>
     normalizeLobbyName(lobby.name).includes(normalizeLobbyName(searchTerm))
@@ -252,16 +263,16 @@ export default function Lobbies () {
     fetch("/api/lobbies/join", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ lobbyId }),
+      body: JSON.stringify({ lobby_id: lobbyId }), // Updated key here
     })
       .then((res) => res.json())
       .then((result) => {
-        console.log("Joined lobby:", result)
-        // Go to LoadingLobby page (adjust route as needed)
-        navigate("/loading-lobby")
+        console.log("Joined lobby:", result);
+        navigate("/loading-lobby");
       })
-      .catch((err) => console.error("Error joining lobby:", err))
-  }
+      .catch((err) => console.error("Error joining lobby:", err));
+  };
+  
 
   const handleCreateLobby = () => {
     navigate("/CreateLobby")
