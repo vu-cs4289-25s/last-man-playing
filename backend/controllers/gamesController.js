@@ -1,6 +1,7 @@
 const db = require("../models");
 const {v4: uuidv4 } = require("uuid");
 const { io } = require("../index");
+const ALL_GAMES = require("../config/allGames");
 
 exports.startGame = async (req, res) => {
     try {
@@ -21,35 +22,38 @@ exports.startGame = async (req, res) => {
             return res.status(400).json({ message: 'You need at least 2 players to start the game'});
         }
 
-        // Create the game
-        // TODO - FIGURE OUT HOW GAME TYPES ARE DETERMINED
+        // Create the game record
         const newGame = await db.Games.create({
             game_id: uuidv4(),
             lobby_id,
-            game_type: 'dummy value', // come back to this
             current_round: 1,
             is_active: true
         });
+
+        const randomIndex = Math.floor(Math.random() * ALL_GAMES.length);
+        const chosenMiniGame = ALL_GAMES[randomIndex];
 
         // Create the first round
         const newRound = await db.Rounds.create({
             round_id: uuidv4(),
             game_id: newGame.game_id,
             round_number: 1,
+            round_game_type: chosenMiniGame,
             started_at: new Date(),
         });
 
         io.to(`lobby-${lobby_id}`).emit('game-started', {
             gameId: newGame.game_id,
             lobbyId: lobby_id,
-            round: newRound
+            round: newRound,
+            miniGame: chosenMiniGame,
         })
 
-        // Respond
         return res.status(201).json({
             message: 'Game started successfully',
             game: newGame,
-            round: newRound
+            round: newRound,
+            miniGame: chosenMiniGame
         });
     } catch (error){
         console.error('Error in startGame:', error);
@@ -112,18 +116,18 @@ exports.finalizeRound = async (req, res) => {
         const { gameId, roundId } = req.params;
 
         // Check if user is lobby leader
-        const game = db.Games.findOne({ where: { game_id: gameId }})
+        const game = await db.Games.findOne({ where: { game_id: gameId }})
         if (!game) {
             return res.status(404).json({ message: 'Game not found' });
         }
 
-        const lobby = db.Lobby.findOne({ where: { lobby_id: game.lobby_id }})
+        const lobby = await db.Lobby.findOne({ where: { lobby_id: game.lobby_id }})
         if (!lobby) {
             return res.status(404).json({ message: 'Lobby not found' });
         }
 
         if (lobby.created_by !== userId){
-            return res.status(403).json({message: 'Only the leader can start the game'});
+            return res.status(403).json({message: 'Only the leader can finalize the game'});
         }
 
         // Retrieve round and results
@@ -164,7 +168,6 @@ exports.finalizeRound = async (req, res) => {
             attributes: ['round_id']
         })
         const roundIdList = allRoundIds.map(r => r.round_id);
-
         const eliminatedResults = await db.RoundResults.findAll({
             where: {
                 round_id: roundIdList,
@@ -184,13 +187,24 @@ exports.finalizeRound = async (req, res) => {
             });
         }
 
-        // TODO - Finalize how next games are chosen and sent to the frontend
+        const usedRounds = await db.Rounds.findAll({
+            where: { game_id : gameId },
+            attributes: ['round_game_type']
+        });
+
+        const usedGameTypes = usedRounds.map(r => r.round_game_type);
+        const availableGames = ALL_GAMES.filter(gameType => !usedGameTypes.includes(gameType));
+
+        const randomIndex = Math.floor(Math.random() * availableGames.length);
+        const chosenMiniGame = availableGames[randomIndex];
+
         const nextRoundNumber = round.round_number + 1;
         const newRound = await db.Rounds.create({
             round_id: uuidv4(),
             game_id: gameId,
             round_number: nextRoundNumber,
-            started_at: new Date()
+            started_at: new Date(),
+            round_game_type: chosenMiniGame
         })
 
         return res.status(200).json({

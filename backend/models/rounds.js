@@ -16,6 +16,11 @@ const Rounds = sequelize.define('Rounds', {
         type: DataTypes.INTEGER,
         allowNull: false
     },
+    round_game_type: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 'DefaultGame'
+    },
     started_at: {
         type: DataTypes.DATE,
         allowNull: true

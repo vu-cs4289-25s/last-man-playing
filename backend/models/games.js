@@ -11,10 +11,6 @@ const Games = sequelize.define("Games", {
         type: DataTypes.UUID,
         allowNull: false,
     },
-    game_type: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
     current_round: {
         type: DataTypes.INTEGER,
         defaultValue: 1,
