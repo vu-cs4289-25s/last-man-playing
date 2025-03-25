@@ -9,11 +9,8 @@ import Leaderboard from "./pages/Leaderboard";
 import LoadingLobby from "./pages/LoadingLobby";
 import CreateLobby from "./pages/CreateLobby";
 import Lobbies from "./pages/Lobbies";
-<<<<<<< HEAD
 import RockPaperScissors from "./pages/RockPaperScissors";
-=======
 import ReactionGame from "./pages/ReactionGame";
->>>>>>> 8b62c90812bc4364a77974645f60e24f73ba8390
 
 export default function App() {
   return (
@@ -31,11 +28,8 @@ export default function App() {
         {/* Add loading lobby Route after games state development*/}
         <Route path="/createlobby" element={<CreateLobby />} />
         <Route path="/lobbies" element={<Lobbies />} />
-<<<<<<< HEAD
         <Route path="/rps" element={<RockPaperScissors />} />
-=======
         <Route path="/reactiongame" element={<ReactionGame />} />
->>>>>>> 8b62c90812bc4364a77974645f60e24f73ba8390
       </Routes>
     </Router>
   );
