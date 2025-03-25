@@ -10,7 +10,7 @@ const Rounds = sequelize.define('Rounds', {
     },
     game_id: {
         type: DataTypes.UUID,
-        allowNull: false
+        allowNull: false,
     },
     round_number: {
         type: DataTypes.INTEGER,

@@ -3,7 +3,7 @@ const sequelize = require("../config/database");
 
 const Games = sequelize.define("Games", {
     game_id: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
         primaryKey: true,
         defaultValue: DataTypes.UUIDV4,
     },

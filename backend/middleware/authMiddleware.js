@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const { createGuestUser } =
+const { createGuestUser } = require('../services/guestService')
 
 module.exports = async (req, res, next) => {
     try {
