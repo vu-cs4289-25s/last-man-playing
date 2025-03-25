@@ -1,0 +1,12 @@
+{
+  "name": "last-man-playing",
+  "version": "1.0.0",
+  "description": "Last Man Playing is a browser video game.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

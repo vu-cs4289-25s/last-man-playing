@@ -9,6 +9,7 @@ import Leaderboard from "./pages/Leaderboard";
 import LoadingLobby from "./pages/LoadingLobby";
 import CreateLobby from "./pages/CreateLobby";
 import Lobbies from "./pages/Lobbies";
+import MathBlitz from "./pages/MathBlitz";
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
         {/* Add loading lobby Route after games state development*/}
         <Route path="/createlobby" element={<CreateLobby />} />
         <Route path="/lobbies" element={<Lobbies />} />
+        <Route path="/mathblitz" element={<MathBlitz />} />
       </Routes>
     </Router>
   );
