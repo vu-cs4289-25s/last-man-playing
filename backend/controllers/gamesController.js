@@ -107,7 +107,101 @@ exports.submitScore = async (req, res) => {
 }
 
 exports.finalizeRound = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { gameId, roundId } = req.params;
 
+        // Check if user is lobby leader
+        const game = db.Games.findOne({ where: { game_id: gameId }})
+        if (!game) {
+            return res.status(404).json({ message: 'Game not found' });
+        }
+
+        const lobby = db.Lobby.findOne({ where: { lobby_id: game.lobby_id }})
+        if (!lobby) {
+            return res.status(404).json({ message: 'Lobby not found' });
+        }
+
+        if (lobby.created_by !== userId){
+            return res.status(403).json({message: 'Only the leader can start the game'});
+        }
+
+        // Retrieve round and results
+        const round = await db.Rounds.findOne({ where: { round_id: roundId }});
+        if (!round) {
+            return res.status(404).json({ message: 'Round not found' });
+        }
+
+        const roundResults = await db.RoundResults.findAll({ where: { round_id: roundId }});
+        if (roundResults.length === 0) {
+            return res.status(400).json ({ message: 'No scores found for this round' });
+        }
+
+        // Find the minimum score
+        let minimumScore = null;
+        let loserId = null
+
+        roundResults.forEach(rr => {
+            if (minimumScore === null || rr.score < minimumScore) {
+                minimumScore = rr.score;
+                loserId = rr.user_id;
+            }
+        })
+
+        // Mark loser as eliminated and end round
+        await db.RoundResults.update(
+            { eliminated: true },
+            { where: {round_id: roundId, user_id: loserId }},
+        )
+
+        await round.update({ ended_at: new Date() });
+
+        // Check how many players are still in the game
+        const totalParticipants = await db.LobbyParticipants.count({ where: { lobby_id: game.lobby_id } });
+
+        const allRoundIds = await db.Rounds.findAll({
+            where: { game_id: gameId },
+            attributes: ['round_id']
+        })
+        const roundIdList = allRoundIds.map(r => r.round_id);
+
+        const eliminatedResults = await db.RoundResults.findAll({
+            where: {
+                round_id: roundIdList,
+                eliminated: true,
+            }
+        });
+
+        const eliminatedUserIds = new Set(eliminatedResults.map(r => r.user_id));
+        const remainingPlayers = totalParticipants - eliminatedUserIds.size;
+
+        if (remainingPlayers <= 1) {
+            await game.update({ is_active: false });
+            return res.status(200).json({
+                message: 'Game ended',
+                loserId,
+                remainingPlayers
+            });
+        }
+
+        // TODO - Finalize how next games are chosen and sent to the frontend
+        const nextRoundNumber = round.round_number + 1;
+        const newRound = await db.Rounds.create({
+            round_id: uuidv4(),
+            game_id: gameId,
+            round_number: nextRoundNumber,
+            started_at: new Date()
+        })
+
+        return res.status(200).json({
+            message: 'Round finalized, next round started',
+            eliminatedPlayer: loserId,
+            nextRound: newRound
+        });
+    } catch (error){
+        console.error('Error in finalizeRound:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
 }
 
 exports.getGameStatus = async (req, res) => {
