@@ -17,8 +17,6 @@ router.get('/public', getPublicLobbies);
 // GET /lobbies/:id
 router.get('/:id', getLobby);
 
-
-
 // POST /lobbies/create
 router.post('/createLobby', authMiddleware, createLobby);
 
