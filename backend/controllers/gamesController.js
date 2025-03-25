@@ -219,5 +219,22 @@ exports.finalizeRound = async (req, res) => {
 }
 
 exports.getGameStatus = async (req, res) => {
+    try {
+        const { gameId } = req.params;
 
+        const games = await db.Games.findOne({ where: { game_id: gameId }});
+        if (!games) {
+            return res.status(404).json({ message: 'Game not found' });
+        }
+
+        const rounds = db.Rounds.findAll({ where: { game_id: gameId }});
+
+        return res.status(200).json({
+            games,
+            rounds
+        })
+    } catch (error) {
+        console.log('Error trying to fetch game status', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
 }

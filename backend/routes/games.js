@@ -1,3 +1,5 @@
+// TODO - add authMiddleware to these functions
+
 const express = require('express');
 const router = express.Router();
 
