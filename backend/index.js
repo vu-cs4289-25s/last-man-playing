@@ -15,12 +15,14 @@ const db = require('./models');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const lobbyRoutes = require('./routes/lobbies');
+const gameRoutes = require('./routes/games')
 
 app.use(cors());
 app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
-app.use('/api/lobbies', lobbyRoutes)
+app.use('/api/lobbies', lobbyRoutes);
+app.use('/api/games', gameRoutes);
 
 app.get('/', (req, res) => {
   res.send('Server running!');
@@ -76,3 +78,6 @@ db.sequelize.sync({ alter: true })
     console.log('Port:', process.env.SUPABASE_DB_PORT);
     console.log('Error syncing database', err);
   });
+
+module.exports = { io };
+

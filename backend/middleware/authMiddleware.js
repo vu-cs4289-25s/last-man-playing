@@ -1,31 +1,24 @@
-const jwt = require("jsonwebtoken");
-const { createGuestUser } =
+const jwt = require('jsonwebtoken');
 
-module.exports = async (req, res, next) => {
+module.exports = (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
-
         if (!authHeader) {
-            // No authorization header, create guest user
-            req.user = await createGuestUser();
-            return next();
+            return res.status(401).json({ message: 'No authorization header provided.' });
         }
 
         const token = authHeader.split(' ')[1];
         if (!token) {
-            // No token, create guest user
-            req.user = await createGuestUser();
-            return next();
+            return res.status(401).json({ message: 'No token found in authorization header.' });
         }
 
-        const decoded = jwt.decode(token, process.env.JWT_SECRET)
-
+        // Verify the token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = decoded;
 
         next();
     } catch (error) {
         console.error('authMiddleware error:', error);
-        return res.status(401).json({ message: 'Invalid token' });
+        return res.status(401).json({ message: 'Invalid or expired token.' });
     }
-}
-
+};

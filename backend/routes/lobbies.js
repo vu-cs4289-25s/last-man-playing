@@ -11,11 +11,11 @@ const {
     removePlayer
  } = require("../controllers/lobbiesController");
 
+ // GET /lobbies/public
+router.get('/public', getPublicLobbies);
+
 // GET /lobbies/:id
 router.get('/:id', getLobby);
-
-// GET /lobbies/public
-router.get('/public', getPublicLobbies);
 
 // POST /lobbies/create
 router.post('/createLobby', authMiddleware, createLobby);

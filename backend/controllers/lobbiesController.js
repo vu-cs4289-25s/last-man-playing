@@ -2,16 +2,56 @@ const db = require('../models');
 const { v4: uuidv4 } = require('uuid');
 
 exports.getLobby = async (req, res) => {
-
-}
-
+    try {
+      const { id } = req.params; // Get lobby ID from URL
+      const lobby = await db.Lobby.findOne({ where: { lobby_id: id } });
+      
+      if (!lobby) {
+        return res.status(404).json({ message: 'Lobby not found' });
+      }
+      
+      // Retrieve all participants in the lobby
+      const participants = await db.LobbyParticipants.findAll({ where: { lobby_id: id } });
+      
+      return res.status(200).json({ lobby, participants });
+    } catch (error) {
+      console.error('Error in getLobby:', error);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  };
+  
+  
 exports.getPublicLobbies = async (req, res) => {
+    try {
+      // Retrieve all lobbies where is_private is false
+      const lobbies = await db.Lobby.findAll({ where: { is_private: false } });
 
-}
+      // For each lobby, calculate the player count and build the response object.
+      const publicLobbies = await Promise.all(
+        lobbies.map(async (lobby) => {
+          const playerCount = await db.LobbyParticipants.count({ where: { lobby_id: lobby.lobby_id } });
+          return {
+            id: lobby.lobby_id,
+            name: lobby.lobby_name,
+            playerCount,
+            maxPlayers: 6,
+            createdAt: lobby.created_at
+          };
+        })
+      );
 
+      return res.status(200).json(publicLobbies);
+    } catch (error) {
+      console.error('Error in getPublicLobbies:', error);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  };
+  
 exports.createLobby = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        console.log("req.user:", req.user); // Debug: shows token payload
+        // Use the correct property from req.user
+        const userId = req.user.userId; 
         const { lobby_name, is_private, password } = req.body;
 
         if (!lobby_name) {
@@ -29,7 +69,7 @@ exports.createLobby = async (req, res) => {
             password: is_private ? password : null,
             created_by: userId,
             created_at: new Date()
-        });
+        }, { timestamps: false });  // Disables auto timestamps for this operation
 
         await db.LobbyParticipants.create({
             lobby_id: newLobby.lobby_id,
@@ -45,11 +85,11 @@ exports.createLobby = async (req, res) => {
         console.error('Error in createLobby:', error);
         return res.status(500).json({ message: 'Internal server error' });
     }
-}
+};
 
 exports.joinLobby = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.userId;
         const { lobby_id, password } = req.body;
 
         if (!lobby_id) {
@@ -100,7 +140,7 @@ exports.joinLobby = async (req, res) => {
 
 exports.leaveLobby = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.userId;
         const { lobby_id } = req.body;
 
         if (!lobby_id){
@@ -150,7 +190,7 @@ exports.leaveLobby = async (req, res) => {
 
 exports.removePlayer = async (req, res) => {
     try {
-        const requestorId = req.user.user_id;
+        const requestorId = req.user.userId;
         const { lobby_id, user_id: targetUserId } = req.body;
 
         if (!lobby_id || !targetUserId) {
