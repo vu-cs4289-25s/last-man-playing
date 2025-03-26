@@ -28,6 +28,7 @@ export default function App() {
         <Route path="/createlobby" element={<CreateLobby />} />
         <Route path="/lobbies" element={<Lobbies />} />
         <Route path="/reactiongame" element={<ReactionGame />} />
+        <Route path="/rps" element={<RockPaperScissors />} />
       </Routes>
     </Router>
   );
