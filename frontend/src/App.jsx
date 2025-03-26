@@ -10,6 +10,7 @@ import LoadingLobby from "./pages/LoadingLobby";
 import CreateLobby from "./pages/CreateLobby";
 import Lobbies from "./pages/Lobbies";
 import ReactionGame from "./pages/ReactionGame";
+import RockPaperScissors from "./pages/RockPaperScissors";
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="/createlobby" element={<CreateLobby />} />
         <Route path="/lobbies" element={<Lobbies />} />
         <Route path="/reactiongame" element={<ReactionGame />} />
+        <Route path="/rps" element={<RockPaperScissors />} />
       </Routes>
     </Router>
   );
