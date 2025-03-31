@@ -227,6 +227,7 @@ import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { socket } from "../lib/socket";
 
+// Optional: sanitize or normalize search
 function normalizeLobbyName(str) {
   return str.toLowerCase().replace(/[^a-z0-9 ]/g, "");
 }
@@ -236,16 +237,24 @@ export default function Lobbies() {
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
 
+  // We'll store a random userId in localStorage or something
+  // so we can identify the user. Or you can just generate a new one each time.
+  useEffect(() => {
+    if (!localStorage.getItem("myUserId")) {
+      localStorage.setItem("myUserId", crypto.randomUUID());
+    }
+  }, []);
+
   useEffect(() => {
     // 1. Connect socket if not connected
     if (!socket.connected) {
       socket.connect();
     }
 
-    // 2. Listen for lobby updates
+    // 2. Listen for "lobby-update" events
     socket.on("lobby-update", (data) => {
       console.log("Lobby updated:", data);
-      // You could display a toast, or set state for real-time changes
+      // Could show a toast or do real-time state updates
     });
 
     // 3. Fetch public lobbies
@@ -263,28 +272,29 @@ export default function Lobbies() {
         console.error("Error fetching public lobbies:", error);
       });
 
-    // Cleanup on unmount
+    // Cleanup when unmounting
     return () => {
       socket.off("lobby-update");
     };
   }, []);
 
-  // Filter lobbies by search
+  // Filter the lobbies by name
   const filteredLobbies = lobbies.filter((lobby) =>
     normalizeLobbyName(lobby.name).includes(normalizeLobbyName(searchTerm))
   );
 
   // Called when user clicks "Join"
   const handleJoin = (lobbyId) => {
-    const token = localStorage.getItem("authToken");
+    const myUserId = localStorage.getItem("myUserId") || crypto.randomUUID();
+
+    // 1. POST /api/lobbies/join
     fetch("/api/lobbies/join", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        // If you are using JWT, pass it here
-        "Authorization": `Bearer ${token}` 
-      },
-      body: JSON.stringify({ lobby_id: lobbyId }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        lobby_id: lobbyId,
+        user_id: myUserId,
+      }),
     })
       .then((res) => res.json())
       .then((result) => {
@@ -293,9 +303,13 @@ export default function Lobbies() {
           result.message === "Joined lobby successfully" ||
           result.message === "Already in lobby"
         ) {
-          // Now join the socket room
+          // 2. Now join the socket room
           socket.emit("join-lobby", { lobbyId });
-          // Redirect to a loading page or the lobby page
+
+          // 3. Store the current lobby for later usage
+          localStorage.setItem("lobbyId", lobbyId);
+
+          // 4. Navigate to "LoadingLobby" or your actual game page
           navigate("/loading-lobby");
         } else {
           alert(result.message || "Failed to join lobby");
@@ -309,7 +323,7 @@ export default function Lobbies() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("authToken");
+    localStorage.removeItem("myUserId");
     navigate("/login");
   };
 
@@ -330,12 +344,13 @@ export default function Lobbies() {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main */}
       <main className="flex-1 bg-gray-100 p-4 flex flex-col items-center">
         <Card className="w-full max-w-5xl">
           <CardHeader>
             <CardTitle className="text-2xl font-bold">LOBBIES</CardTitle>
           </CardHeader>
+
           <CardContent>
             {/* Search */}
             <div className="mb-4">
@@ -358,7 +373,7 @@ export default function Lobbies() {
               </Button>
             </div>
 
-            {/* Lobbies List */}
+            {/* Display Lobbies */}
             <div className="bg-white border p-4 rounded-md max-h-[400px] overflow-y-auto">
               {filteredLobbies.length === 0 ? (
                 <p className="text-gray-500">No lobbies found.</p>
