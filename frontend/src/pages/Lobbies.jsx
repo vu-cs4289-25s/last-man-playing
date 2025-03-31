@@ -217,27 +217,42 @@
 
 // frontend/src/pages/Lobbies.jsx
 
-import React, { useEffect, useState }  from "react";
+/********************************************
+ * frontend/src/pages/Lobbies.jsx
+ ********************************************/
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card"
 import { Input } from "../components/ui/input"
 import { Button } from "../components/ui/button"
-//import create lobby button from shadcn
-//import lobby buttons from shadcn
-//import shadcn menu item
 
+import { socket } from "../lib/socket";
+
+// Helper: normalize strings for searching
 function normalizeLobbyName(str) {
-  return str.toLowerCase().replace(/[^a-z0-9 ]/g, "")
+  return str.toLowerCase().replace(/[^a-z0-9 ]/g, "");
 }
 
-export default function Lobbies () {
-  // lobbylist has to include lobby name, num of players joined, num of players in lobby
-  const [lobbies, setLobbies] = useState([])
-  //search lobbynames
-  const [searchTerm, setSearchTerm] = useState("")
-  const navigate = useNavigate()
+export default function Lobbies() {
+  const [lobbies, setLobbies] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const navigate = useNavigate();
 
+  // 1. On initial mount: fetch public lobbies, connect socket
   useEffect(() => {
+    // Connect socket if not already connected
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    // Listen for "lobby-update" from the server
+    socket.on("lobby-update", (data) => {
+      console.log("Lobby updated:", data);
+      // e.g. You can show a toast, update UI, etc.
+    });
+
+    // Fetch public lobbies
     fetch("/api/lobbies/public")
       .then((res) => res.json())
       .then((data) => {
@@ -252,48 +267,71 @@ export default function Lobbies () {
         console.error("Lobbies error:", error);
         setLobbies([]);
       });
-  }, []);
-  
 
+    // Cleanup socket listeners on unmount
+    return () => {
+      socket.off("lobby-update");
+    };
+  }, []);
+
+  // Filter lobbies by name using search term
   const filteredLobbies = lobbies.filter((lobby) =>
     normalizeLobbyName(lobby.name).includes(normalizeLobbyName(searchTerm))
-  )
+  );
 
+  // 2. Join the selected lobby
   const handleJoin = (lobbyId) => {
+    // 2a. Call the HTTP endpoint to join the lobby in DB
     fetch("/api/lobbies/join", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ lobby_id: lobbyId }), // Updated key here
+      body: JSON.stringify({ lobby_id: lobbyId }),
     })
       .then((res) => res.json())
       .then((result) => {
         console.log("Joined lobby:", result);
-        navigate("/loading-lobby");
+
+        // 2b. If joined successfully, tell Socket.IO to join that room
+        if (
+          result &&
+          (result.message === "Joined lobby successfully" ||
+            result.message === "Already in lobby")
+        ) {
+          // Actually emit the "join-lobby" event
+          socket.emit("join-lobby", lobbyId);
+
+          // Navigate to a "Loading Lobby" or your actual lobby UI
+          navigate("/loading-lobby");
+        } else {
+          // Handle an error message, e.g. "Lobby is full"
+          console.error("Join lobby failed:", result);
+        }
       })
       .catch((err) => console.error("Error joining lobby:", err));
   };
-  
 
+  // 3. Create a new lobby
   const handleCreateLobby = () => {
-    navigate("/CreateLobby")
-  }
+    navigate("/CreateLobby");
+  };
 
+  // 4. Logout
   const handleLogout = () => {
     localStorage.removeItem("authToken");
-    navigate("/login")
-  }
+    navigate("/login");
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
       <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
-        {/* Profile Icon */}
+        {/* Profile Icon + Logout Button */}
         <div className="flex items-center gap-4">
           <img
-              src="https://via.placeholder.com/40" // Replace with actual profile image URL
-              alt="Profile"
-              className="w-10 h-10 rounded-full border-2 border-gray-500"
+            src="https://via.placeholder.com/40" // Replace with actual profile image URL
+            alt="Profile"
+            className="w-10 h-10 rounded-full border-2 border-gray-500"
           />
           <Button onClick={handleLogout} className="bg-red-500 text-white hover:bg-red-600">
             Logout
@@ -321,7 +359,7 @@ export default function Lobbies () {
               />
             </div>
 
-            {/* Create Lobby Buttons */}
+            {/* Create Lobby Button */}
             <div className="mb-4 flex gap-2">
               <Button
                 onClick={() => handleCreateLobby(true)}
@@ -332,16 +370,7 @@ export default function Lobbies () {
             </div>
 
             {/* Lobbies List Container */}
-            {/* 
-              Option A (Tailwind-only approach): 
-              Just wrap the list in a div with a fixed max-height, overflow-y-auto 
-            */}
             <div className="bg-white border p-4 rounded-md max-h-[400px] overflow-y-auto">
-              {/* Option B: If you have a ScrollArea component from shadcn:
-                  <ScrollArea className="h-96 w-full">
-                    {...map lobbies...}
-                  </ScrollArea>
-               */}
               {filteredLobbies.length === 0 ? (
                 <p className="text-gray-500">No lobbies found.</p>
               ) : (
@@ -354,9 +383,7 @@ export default function Lobbies () {
                     <span>
                       {lobby.playerCount}/{lobby.maxPlayers}
                     </span>
-                    <Button onClick={() => handleJoin(lobby.id)}>
-                      Join
-                    </Button>
+                    <Button onClick={() => handleJoin(lobby.id)}>Join</Button>
                   </div>
                 ))
               )}
@@ -365,12 +392,5 @@ export default function Lobbies () {
         </Card>
       </main>
     </div>
-  )
-
+  );
 }
-
-
-
-//navbar
-//lobbies header
-//create fram thru html/style
