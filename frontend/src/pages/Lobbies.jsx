@@ -1,6 +1,5 @@
-/************************************************
- * File: frontend/src/pages/Lobbies.jsx
- ************************************************/
+// frontend/src/pages/Lobbies.jsx
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
@@ -8,7 +7,6 @@ import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { socket } from "../lib/socket";
 
-// Optional: sanitize or normalize search
 function normalizeLobbyName(str) {
   return str.toLowerCase().replace(/[^a-z0-9 ]/g, "");
 }
@@ -18,27 +16,30 @@ export default function Lobbies() {
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
 
-  // We'll store a random userId in localStorage or something
-  // so we can identify the user. Or you can just generate a new one each time.
+  // Ensure that the user has a valid user ID in localStorage.
+  // This should have been set during login/registration.
   useEffect(() => {
-    if (!localStorage.getItem("myUserId")) {
-      localStorage.setItem("myUserId", crypto.randomUUID());
+    const myUserId = localStorage.getItem("myUserId");
+    if (!myUserId) {
+      // Redirect to login if no user ID is found.
+      alert("You must be logged in to view lobbies.");
+      navigate("/login");
     }
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
-    // 1. Connect socket if not connected
+    // 1. Connect socket if not already connected
     if (!socket.connected) {
       socket.connect();
     }
 
-    // 2. Listen for "lobby-update" events
+    // 2. Listen for lobby updates (for real-time events)
     socket.on("lobby-update", (data) => {
       console.log("Lobby updated:", data);
-      // Could show a toast or do real-time state updates
+      // Optionally, update the UI based on data received
     });
 
-    // 3. Fetch public lobbies
+    // 3. Fetch the list of public lobbies from the backend
     fetch("/api/lobbies/public")
       .then((res) => res.json())
       .then((data) => {
@@ -53,28 +54,33 @@ export default function Lobbies() {
         console.error("Error fetching public lobbies:", error);
       });
 
-    // Cleanup when unmounting
+    // Cleanup the socket listener when component unmounts
     return () => {
       socket.off("lobby-update");
     };
   }, []);
 
-  // Filter the lobbies by name
+  // Filter lobbies based on the search term
   const filteredLobbies = lobbies.filter((lobby) =>
     normalizeLobbyName(lobby.name).includes(normalizeLobbyName(searchTerm))
   );
 
-  // Called when user clicks "Join"
+  // Function to handle joining a lobby
   const handleJoin = (lobbyId) => {
-    const myUserId = localStorage.getItem("myUserId") || crypto.randomUUID();
+    // Retrieve the logged-in user's ID from localStorage.
+    const myUserId = localStorage.getItem("myUserId");
+    if (!myUserId) {
+      alert("You must be logged in to join a lobby.");
+      return;
+    }
 
-    // 1. POST /api/lobbies/join
+    // Send a POST request to join the lobby.
     fetch("/api/lobbies/join", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         lobby_id: lobbyId,
-        user_id: myUserId,
+        user_id: myUserId, // Pass the actual logged-in user ID here.
       }),
     })
       .then((res) => res.json())
@@ -84,13 +90,11 @@ export default function Lobbies() {
           result.message === "Joined lobby successfully" ||
           result.message === "Already in lobby"
         ) {
-          // 2. Now join the socket room
+          // Emit the join event over Socket.IO to join the corresponding room.
           socket.emit("join-lobby", { lobbyId });
-
-          // 3. Store the current lobby for later usage
+          // Store the current lobby ID in localStorage for later usage.
           localStorage.setItem("lobbyId", lobbyId);
-
-          // 4. Navigate to "LoadingLobby" or your actual game page
+          // Navigate to the loading/game page.
           navigate("/loading-lobby");
         } else {
           alert(result.message || "Failed to join lobby");
@@ -99,11 +103,19 @@ export default function Lobbies() {
       .catch((err) => console.error("Error joining lobby:", err));
   };
 
+  // Function to handle creating a lobby (if you want to add this functionality)
   const handleCreateLobby = () => {
+    const myUserId = localStorage.getItem("myUserId");
+    if (!myUserId) {
+      alert("You must be logged in to create a lobby.");
+      return;
+    }
+    // Navigate to the lobby creation page (or open a modal)
     navigate("/CreateLobby");
   };
 
   const handleLogout = () => {
+    localStorage.removeItem("authToken");
     localStorage.removeItem("myUserId");
     navigate("/login");
   };
@@ -133,7 +145,7 @@ export default function Lobbies() {
           </CardHeader>
 
           <CardContent>
-            {/* Search */}
+            {/* Search Input */}
             <div className="mb-4">
               <Input
                 type="text"
@@ -154,7 +166,7 @@ export default function Lobbies() {
               </Button>
             </div>
 
-            {/* Display Lobbies */}
+            {/* Display Public Lobbies */}
             <div className="bg-white border p-4 rounded-md max-h-[400px] overflow-y-auto">
               {filteredLobbies.length === 0 ? (
                 <p className="text-gray-500">No lobbies found.</p>

@@ -12,36 +12,38 @@ export default function Login() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
+  // frontend/src/pages/Login.jsx
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError("");
+  setSuccess("");
 
-    try {
-      const response = await fetch ("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({username, password})
-      })
+  try {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        setError(errorData.message || 'Login failed');
-        return;
-      }
-      const data = await response.json();
-      setSuccess('Logged in successfully!');
-
-      if (data.token) {
-        localStorage.setItem("authToken", data.token);
-      }
-
-      window.location.href = "/lobbies"
-    } catch (error) {
-      console.error('Login error:' + error)
-      setError("An error occurred. Please try again.");
+    if (!response.ok) {
+      const errorData = await response.json();
+      setError(errorData.message || 'Login failed');
+      return;
     }
+    const data = await response.json();
+    setSuccess('Logged in successfully!');
+
+    // Save both token and user_id to localStorage
+    if (data.token && data.user_id) {
+      localStorage.setItem("authToken", data.token);
+      localStorage.setItem("myUserId", data.user_id);
+    }
+    window.location.href = "/lobbies";
+  } catch (error) {
+    console.error('Login error:' + error);
+    setError("An error occurred. Please try again.");
   }
+};
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen w-full bg-gray-100">
