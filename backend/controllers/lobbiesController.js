@@ -35,129 +35,117 @@ exports.getPublicLobbies = async (req, res) => {
 
 // CREATE a new lobby
 exports.createLobby = async (req, res) => {
-    try {
-      const {
-        lobby_name,
-        is_private = false,
-        password = null,
-        user_id
-      } = req.body;
-  
-      // Simple fallback if no user_id is provided
-      const creatorId = user_id || uuidv4();
-  
-      if (!lobby_name) {
-        return res.status(400).json({ message: 'Lobby name is required' });
-      }
-  
-      // 1) Ensure user with creatorId actually exists in the DB
-      let existingUser = await db.User.findOne({ where: { user_id: creatorId } });
-      if (!existingUser) {
-        // Create a placeholder user with the needed fields
-        existingUser = await db.User.create({
-          user_id: creatorId,
-          username: 'Guest-' + creatorId.slice(0, 8),
-          email: `guest-${creatorId.slice(0, 8)}@example.com`,
-          password_hash: 'somePlaceholderHash'
-        });
-      }
-  
-      // 2) Create the Lobby
-      const newLobbyId = uuidv4();
-      const newLobby = await db.Lobby.create({
-        lobby_id: newLobbyId,
-        lobby_name,
-        is_private: Boolean(is_private),
-        password: is_private ? password : null,
-        created_by: creatorId,  // references the user you just ensured
-        created_at: new Date()
-      }, { timestamps: false });
-  
-      // 3) Add the creator to LobbyParticipants
-      await db.LobbyParticipants.create({
-        lobby_id: newLobbyId,
-        user_id: creatorId,
-        joined_at: new Date()
-      });
-  
-      // 4) Return success
-      return res.status(201).json({
-        message: 'Lobby created successfully',
-        lobby: newLobby
-      });
-    } catch (error) {
-      console.error('Error in createLobby:', error);
-      res.status(500).json({ message: 'Internal server error' });
+  try {
+    const { lobby_name, is_private = false, password = null, user_id } = req.body;
+    
+    // Require a user_id for lobby creation (since the creator must be logged in)
+    if (!user_id) {
+      return res.status(401).json({ message: 'User must be logged in to create a lobby' });
     }
-  };
-// File: backend/controllers/lobbiesController.js
+    const creatorId = user_id;
 
-// JOIN a lobby
-exports.joinLobby = async (req, res) => {
-    try {
-      const { lobby_id, password = null, user_id } = req.body;
-      if (!lobby_id) {
-        return res.status(400).json({ message: 'lobby_id is required' });
-      }
-  
-      // 1) Use provided user_id or generate one
-      const joinerId = user_id || uuidv4();
-  
-      // 2) Find the lobby
-      const lobby = await db.Lobby.findOne({ where: { lobby_id } });
-      if (!lobby) {
-        return res.status(404).json({ message: 'Lobby not found' });
-      }
-  
-      // 3) If the lobby is private, check password
-      if (lobby.is_private) {
-        if (!password) {
-          return res.status(401).json({ message: 'Password is required for private lobbies' });
-        }
-        if (lobby.password !== password) {
-          return res.status(401).json({ message: 'Incorrect password' });
-        }
-      }
-  
-      // 4) Check if lobby is full
-      const participantCount = await db.LobbyParticipants.count({ where: { lobby_id } });
-      if (participantCount >= 6) {
-        return res.status(401).json({ message: 'Lobby is full' });
-      }
-  
-      // 5) Check if user is already in the lobby
-      const existingParticipant = await db.LobbyParticipants.findOne({
-        where: { lobby_id, user_id: joinerId }
-      });
-      if (existingParticipant) {
-        return res.status(200).json({ message: 'Already in lobby' });
-      }
-  
-      // 6) Ensure user with joinerId actually exists in the DB
-      let existingUser = await db.User.findOne({ where: { user_id: joinerId } });
-      if (!existingUser) {
-        // Create a placeholder user with the required fields
-        existingUser = await db.User.create({
-          user_id: joinerId,
-          username: 'Guest-' + joinerId.slice(0, 8),
-          email: `guest-${joinerId.slice(0, 8)}@example.com`,
-          password_hash: 'somePlaceholderHash'
-        });
-      }
-  
-      // 7) Add user to lobby participants
-      await db.LobbyParticipants.create({
-        lobby_id,
-        user_id: joinerId,
-        joined_at: new Date()
-      });
-  
-      return res.status(200).json({ message: 'Joined lobby successfully', userId: joinerId });
-    } catch (error) {
-      console.error('Error in joinLobby:', error);
-      res.status(500).json({ message: 'Internal server error' });
+    if (!lobby_name) {
+      return res.status(400).json({ message: 'Lobby name is required' });
     }
-  };
+
+    // Verify that the user exists (do not auto-create for logged-in users)
+    const existingUser = await db.User.findOne({ where: { user_id: creatorId } });
+    if (!existingUser) {
+      return res.status(401).json({ message: 'User not found. Please log in again.' });
+    }
+
+    // Create the Lobby
+    const newLobbyId = uuidv4();
+    const newLobby = await db.Lobby.create({
+      lobby_id: newLobbyId,
+      lobby_name,
+      is_private: Boolean(is_private),
+      password: is_private ? password : null,
+      created_by: creatorId,
+      created_at: new Date()
+    }, { timestamps: false });
+
+    // Add the creator to LobbyParticipants
+    await db.LobbyParticipants.create({
+      lobby_id: newLobbyId,
+      user_id: creatorId,
+      joined_at: new Date()
+    });
+
+    return res.status(201).json({
+      message: 'Lobby created successfully',
+      lobby: newLobby
+    });
+  } catch (error) {
+    console.error('Error in createLobby:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// File: backend/controllers/lobbiesController.js
+exports.joinLobby = async (req, res) => {
+  try {
+    const { lobby_id, password = null, user_id } = req.body;
+    if (!lobby_id) {
+      return res.status(400).json({ message: 'lobby_id is required' });
+    }
+
+    // Require a user_id for authenticated users
+    if (!user_id) {
+      return res.status(401).json({ message: 'User must be logged in to join a lobby' });
+    }
+    const joinerId = user_id; // Use the provided user_id directly
+
+    // Find the lobby
+    const lobby = await db.Lobby.findOne({ where: { lobby_id } });
+    if (!lobby) {
+      return res.status(404).json({ message: 'Lobby not found' });
+    }
+
+    // Check private lobby password if needed
+    if (lobby.is_private) {
+      if (!password) {
+        return res.status(401).json({ message: 'Password is required for private lobbies' });
+      }
+      if (lobby.password !== password) {
+        return res.status(401).json({ message: 'Incorrect password' });
+      }
+    }
+
+    // Check if the lobby is full
+    const participantCount = await db.LobbyParticipants.count({ where: { lobby_id } });
+    if (participantCount >= 6) {
+      return res.status(401).json({ message: 'Lobby is full' });
+    }
+
+    // Check if user is already in the lobby
+    const existingParticipant = await db.LobbyParticipants.findOne({
+      where: { lobby_id, user_id: joinerId }
+    });
+    if (existingParticipant) {
+      return res.status(200).json({ message: 'Already in lobby' });
+    }
+
+    // Now, verify that the user actually exists in the DB.
+    const existingUser = await db.User.findOne({ where: { user_id: joinerId } });
+    if (!existingUser) {
+      // For logged-in users, not finding the user means something's wrong.
+      return res.status(401).json({ message: 'User not found. Please log in again.' });
+    }
+
+    // Add user to lobby participants
+    await db.LobbyParticipants.create({
+      lobby_id,
+      user_id: joinerId,
+      joined_at: new Date()
+    });
+
+    return res.status(200).json({ message: 'Joined lobby successfully', userId: joinerId });
+  } catch (error) {
+    console.error('Error in joinLobby:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
 
 // Leave a lobby
 exports.leaveLobby = async (req, res) => {
