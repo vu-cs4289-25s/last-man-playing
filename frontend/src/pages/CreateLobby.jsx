@@ -46,7 +46,7 @@ export default function CreateLobby() {
         console.log("Lobby created:", data);
         // Store the new lobby ID for reference if you want
         localStorage.setItem("lobbyId", data.lobby.lobby_id);
-        navigate("/loading-lobby");
+        navigate("/loadinglobby");
       } else {
         console.error("Create Lobby error:", data);
       }
