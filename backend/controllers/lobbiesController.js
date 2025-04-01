@@ -33,45 +33,51 @@ exports.getPublicLobbies = async (req, res) => {
   }
 };
 
-// CREATE a new lobby
 exports.createLobby = async (req, res) => {
   try {
     const { lobby_name, is_private = false, password = null, user_id } = req.body;
     
-    // Require a user_id for lobby creation (since the creator must be logged in)
+    // Require a logged in user
     if (!user_id) {
       return res.status(401).json({ message: 'User must be logged in to create a lobby' });
     }
-    const creatorId = user_id;
-
-    if (!lobby_name) {
-      return res.status(400).json({ message: 'Lobby name is required' });
-    }
-
-    // Verify that the user exists (do not auto-create for logged-in users)
-    const existingUser = await db.User.findOne({ where: { user_id: creatorId } });
+    
+    // Verify that the user exists
+    const existingUser = await db.User.findOne({ where: { user_id } });
     if (!existingUser) {
       return res.status(401).json({ message: 'User not found. Please log in again.' });
     }
-
-    // Create the Lobby
+    
+    if (!lobby_name) {
+      return res.status(400).json({ message: 'Lobby name is required' });
+    }
+    
+    // Create the Lobby with a new unique ID
     const newLobbyId = uuidv4();
     const newLobby = await db.Lobby.create({
       lobby_id: newLobbyId,
       lobby_name,
       is_private: Boolean(is_private),
       password: is_private ? password : null,
-      created_by: creatorId,
+      created_by: user_id,
       created_at: new Date()
     }, { timestamps: false });
-
+    
     // Add the creator to LobbyParticipants
     await db.LobbyParticipants.create({
       lobby_id: newLobbyId,
-      user_id: creatorId,
+      user_id: user_id,
       joined_at: new Date()
     });
-
+    
+    // Emit a Socket.IO event to notify clients that a lobby has been created.
+    const io = getIO();
+    io.to(`lobby-${newLobbyId}`).emit("lobby-update", {
+      action: "created",
+      lobbyId: newLobbyId,
+      creator: user_id,
+    });
+    
     return res.status(201).json({
       message: 'Lobby created successfully',
       lobby: newLobby
@@ -82,27 +88,26 @@ exports.createLobby = async (req, res) => {
   }
 };
 
-// File: backend/controllers/lobbiesController.js
 exports.joinLobby = async (req, res) => {
   try {
     const { lobby_id, password = null, user_id } = req.body;
     if (!lobby_id) {
       return res.status(400).json({ message: 'lobby_id is required' });
     }
-
-    // Require a user_id for authenticated users
+    
+    // Require a logged in user
     if (!user_id) {
       return res.status(401).json({ message: 'User must be logged in to join a lobby' });
     }
-    const joinerId = user_id; // Use the provided user_id directly
-
+    const joinerId = user_id;
+    
     // Find the lobby
     const lobby = await db.Lobby.findOne({ where: { lobby_id } });
     if (!lobby) {
       return res.status(404).json({ message: 'Lobby not found' });
     }
-
-    // Check private lobby password if needed
+    
+    // If the lobby is private, check the password
     if (lobby.is_private) {
       if (!password) {
         return res.status(401).json({ message: 'Password is required for private lobbies' });
@@ -111,13 +116,13 @@ exports.joinLobby = async (req, res) => {
         return res.status(401).json({ message: 'Incorrect password' });
       }
     }
-
-    // Check if the lobby is full
+    
+    // Check if lobby is full
     const participantCount = await db.LobbyParticipants.count({ where: { lobby_id } });
     if (participantCount >= 6) {
       return res.status(401).json({ message: 'Lobby is full' });
     }
-
+    
     // Check if user is already in the lobby
     const existingParticipant = await db.LobbyParticipants.findOne({
       where: { lobby_id, user_id: joinerId }
@@ -125,21 +130,28 @@ exports.joinLobby = async (req, res) => {
     if (existingParticipant) {
       return res.status(200).json({ message: 'Already in lobby' });
     }
-
-    // Now, verify that the user actually exists in the DB.
+    
+    // Verify that the user exists
     const existingUser = await db.User.findOne({ where: { user_id: joinerId } });
     if (!existingUser) {
-      // For logged-in users, not finding the user means something's wrong.
       return res.status(401).json({ message: 'User not found. Please log in again.' });
     }
-
+    
     // Add user to lobby participants
     await db.LobbyParticipants.create({
       lobby_id,
       user_id: joinerId,
       joined_at: new Date()
     });
-
+    
+    // Emit a Socket.IO event to notify clients in this lobby room.
+    const io = getIO();
+    io.to(`lobby-${lobby_id}`).emit("lobby-update", {
+      action: "join",
+      lobbyId: lobby_id,
+      userId: joinerId,
+    });
+    
     return res.status(200).json({ message: 'Joined lobby successfully', userId: joinerId });
   } catch (error) {
     console.error('Error in joinLobby:', error);
@@ -147,46 +159,55 @@ exports.joinLobby = async (req, res) => {
   }
 };
 
-// Leave a lobby
 exports.leaveLobby = async (req, res) => {
   try {
     const { lobby_id, user_id } = req.body;
     if (!lobby_id || !user_id) {
       return res.status(400).json({ message: 'lobby_id and user_id are required' });
     }
-
+    
     const participant = await db.LobbyParticipants.findOne({ where: { lobby_id, user_id } });
     if (!participant) {
       return res.status(400).json({ message: 'You are not in this lobby' });
     }
-
+    
     const lobby = await db.Lobby.findOne({ where: { lobby_id } });
     if (!lobby) {
       return res.status(400).json({ message: 'Lobby not found' });
     }
-
-    // Remove the user
+    
+    // Remove the user from the lobby
     await participant.destroy();
-
-    // If user was the leader, promote next participant or destroy the lobby
+    
+    // If the user was the lobby leader, handle promotion or destruction
     if (lobby.created_by === user_id) {
       const remaining = await db.LobbyParticipants.findAll({
         where: { lobby_id },
         order: [['joined_at', 'DESC']]
       });
-
       if (remaining.length === 0) {
         await lobby.destroy();
+        // Emit lobby-closed event because the lobby is now empty
+        const io = getIO();
+        io.to(`lobby-${lobby_id}`).emit("lobby-closed", {
+          lobbyId: lobby_id,
+          message: "Lobby closed (no participants remain)",
+        });
         return res.status(200).json({ message: 'Lobby closed (no participants remain)' });
       } else {
         const newLeader = remaining[0];
         await lobby.update({ created_by: newLeader.user_id });
       }
     }
-
-    // Optionally broadcast
-    // getIO().to(`lobby-${lobby_id}`).emit('lobby-update', { user_id, action: 'left' });
-
+    
+    // Emit a Socket.IO event for leaving
+    const io = getIO();
+    io.to(`lobby-${lobby_id}`).emit("lobby-update", {
+      action: "leave",
+      lobbyId: lobby_id,
+      userId: user_id,
+    });
+    
     return res.status(200).json({ message: 'Left lobby successfully' });
   } catch (error) {
     console.error('Error in leaveLobby:', error);
