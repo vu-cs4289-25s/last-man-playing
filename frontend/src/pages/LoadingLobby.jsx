@@ -1,3 +1,5 @@
+// frontend/src/pages/LoadingLobby.jsx
+
 import React, { useState, useEffect } from "react";
 import { Card } from "../components/ui/card";
 import { socket } from "../lib/socket"; // Import our Socket.IO client instance
