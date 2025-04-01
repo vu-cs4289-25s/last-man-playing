@@ -8,19 +8,19 @@ const cors = require('cors');
 const http = require('http');
 const db = require('./models');
 
-// Import your routes
-const authRoutes = require('./routes/auth');
-const userRoutes = require('./routes/user');
+// Import your routes (no auth needed for lobbies)
+const authRoutes = require('./routes/auth');   // if you still want them
+const userRoutes = require('./routes/user');   // if you still want them
 const lobbyRoutes = require('./routes/lobbies');
 const gameRoutes = require('./routes/games');
 
-// Import the socket initializer
+// Import the Socket.IO initializer
 const { init: initSocket } = require('./socket');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// Middleware
+// Middlewares
 app.use(cors());
 app.use(express.json());
 
@@ -30,18 +30,18 @@ app.use('/api/user', userRoutes);
 app.use('/api/lobbies', lobbyRoutes);
 app.use('/api/games', gameRoutes);
 
-// Basic check route
+// Health check route
 app.get('/', (req, res) => {
   res.send('Server running!');
 });
 
-// Create HTTP server from express app
+// Create an HTTP server from the Express app
 const server = http.createServer(app);
 
-// Initialize socket.io
+// Initialize Socket.IO
 initSocket(server);
 
-// Sync DB, then start server
+// Sync DB, then start listening
 db.sequelize.sync({ alter: true })
   .then(() => {
     console.log('Database synchronized! (alter: true)');
@@ -49,6 +49,6 @@ db.sequelize.sync({ alter: true })
       console.log(`Server running on port ${PORT}`);
     });
   })
-  .catch(err => {
+  .catch((err) => {
     console.error('Error syncing database', err);
   });
