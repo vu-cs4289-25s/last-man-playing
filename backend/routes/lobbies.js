@@ -1,32 +1,26 @@
+/************************************************
+ * File: backend/routes/lobbies.js
+ ************************************************/
 const express = require('express');
 const router = express.Router();
-const authMiddleware = require("../middleware/authMiddleware");
+const lobbiesController = require('../controllers/lobbiesController');
 
-const {
-    getLobby,
-    getPublicLobbies,
-    createLobby,
-    joinLobby,
-    leaveLobby,
-    removePlayer
- } = require("../controllers/lobbiesController");
+// Anyone can fetch public lobbies or create/join/leave for now
+router.get('/public', lobbiesController.getPublicLobbies);
 
- // GET /lobbies/public
-router.get('/public', getPublicLobbies);
+// Create a new lobby
+router.post('/create', lobbiesController.createLobby);
 
-// GET /lobbies/:id
-router.get('/:id', getLobby);
+// Join a lobby
+router.post('/join', lobbiesController.joinLobby);
 
-// POST /lobbies/create
-router.post('/createLobby', authMiddleware, createLobby);
+// Leave a lobby
+router.post('/leave', lobbiesController.leaveLobby);
 
-// POST /lobbies/join
-router.post('/joinLobby', authMiddleware, joinLobby);
+// Remove a player
+router.post('/remove', lobbiesController.removePlayer);
 
-// POST /lobbies/leave
-router.post('/leaveLobby', leaveLobby);
-
-// POST /lobbies/remove
-router.post('/removePlayer', removePlayer);
+// Get a specific lobby by ID
+router.get('/:id', lobbiesController.getLobby);
 
 module.exports = router;
