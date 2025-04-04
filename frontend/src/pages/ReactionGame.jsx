@@ -1,215 +1,224 @@
-import React, { useState, useEffect, useRef } from "react"
-// If you plan to post results to a backend, uncomment:
+import React, { useState, useEffect, useRef } from "react";
 // import axios from "axios"
 
 function randomInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 export default function ReactionGame() {
-  // =======================
-  //      GAME STATES
-  // =======================
-  const [gamePhase, setGamePhase] = useState("preGame")  
-  const [preGameTimeLeft, setPreGameTimeLeft] = useState(15)
+  const [gamePhase, setGamePhase] = useState("pregame"); // "pregame", "ingame", "done"
+  const [pregameTimeLeft, setPregameTimeLeft] = useState(15);
+  const [gameStartTime, setGameStartTime] = useState(null);
+  const [finalMessage, setFinalMessage] = useState("");
 
-  // "green" => must hold; "red" => must let go
-  const [color, setColor] = useState("green")
+  const [color, setColor] = useState("green"); // "green" => hold, "red" => release
+  const [colorCycleTimeLeft, setColorCycleTimeLeft] = useState(0);
 
-  // Hidden from UI, used internally for each color cycle
-  const [colorCycleTimeLeft, setColorCycleTimeLeft] = useState(0)
+  const [roundsCompleted, setRoundsCompleted] = useState(0); // need 10 successes
+  const [strikes, setStrikes] = useState(0);                 // 3 => out
 
-  const [roundsCompleted, setRoundsCompleted] = useState(0)  // Need 10 successful color changes
-  const [strikes, setStrikes] = useState(0)                  // 3 => game ends
+  const [isHolding, setIsHolding] = useState(false);  // if user is physically pressing
+  const [isHovering, setIsHovering] = useState(false);
 
-  // We'll store reaction times (in ms) for each successful round
-  const [reactionTimes, setReactionTimes] = useState([])  
+  // Reaction times
+  const [reactionTimes, setReactionTimes] = useState([]);
+  const [lastReactionTime, setLastReactionTime] = useState(null);
 
-  // Show the last reaction time right after each successful turn
-  const [lastReactionTime, setLastReactionTime] = useState(null)
+  // timestamp of last color flip
+  const lastColorSwitchRef = useRef(null);
 
-  // When the color changes, we store the timestamp here
-  const lastColorSwitchRef = useRef(null)
+  const [hasSucceededThisCycle, setHasSucceededThisCycle] = useState(false);
 
-  // If the user is currently holding the mouse down
-  const [isHolding, setIsHolding] = useState(false)
-
-  // Overall timing
-  const [gameStartTime, setGameStartTime] = useState(null)
-  const [finalMessage, setFinalMessage] = useState("")
-
-  /*************************************************
-   * 1. PRE-GAME PHASE
-   *************************************************/
+  // pregame
   useEffect(() => {
-    if (gamePhase !== "preGame") return
-    
-    // If user never presses within 15s, add a strike, reset timer
-    if (preGameTimeLeft <= 0) {
-      addStrike()
-      setPreGameTimeLeft(15)
-    }
-
+    if (gamePhase !== "pregame") return;
+    // add strike if user never begins game
+    if (pregameTimeLeft <= 0) {
+      addStrike();
+      setPregameTimeLeft(15);
+    };
+    // timer decrements per second
     const timerId = setInterval(() => {
-      setPreGameTimeLeft((t) => t - 1)
-    }, 1000)
+      setPregameTimeLeft((t) => t - 1)
+    }, 1000);
 
-    return () => clearInterval(timerId)
-  }, [gamePhase, preGameTimeLeft])
+    return () => clearInterval(timerId);
+  }, [gamePhase, pregameTimeLeft])
 
-  const handleMouseDownPreGame = () => {
-    // Player has pressed the blue button, start inGame
-    setGamePhase("inGame")
-    setGameStartTime(Date.now())
+  // start game when player presses down
+  function handleMouseDownPregame() {
+    setGamePhase("ingame");
+    setGameStartTime(Date.now());
 
-    // First color cycle (range is now 5–11 seconds, not 6–15)
-    const randomDuration = randomInt(5, 11)
-    setColorCycleTimeLeft(randomDuration)
-    lastColorSwitchRef.current = Date.now()
+    const duration = randomInt(5, 10); // 5 - 11 secs for color change
+    setColorCycleTimeLeft(duration);
+    lastColorSwitchRef.current = Date.now();
 
-    setPreGameTimeLeft(15)
-    setIsHolding(true)
+    setPregameTimeLeft(15);
+    setIsHolding(true);
   }
 
-  /*************************************************
-   * 2. IN-GAME PHASE
-   *************************************************/
+  // ingame
   useEffect(() => {
-    if (gamePhase !== "inGame") return
+    if (gamePhase !== "ingame") return;
 
-    // If 3 strikes or 10 successes, end
+    // End if 3 strikes or 10 successes
     if (strikes >= 3) {
-      endGame(false)
-      return
+      endGame(false);
+      return;
     }
     if (roundsCompleted >= 10) {
-      endGame(true)
-      return
+      endGame(true);
+      return;
     }
 
-    // If the color cycle hits 0, flip color
+    // edit: If time for this color cycle is up, just flip color—no auto strike
+    // CHANGED
     if (colorCycleTimeLeft <= 0) {
-      handleEndOfColorCycle()
-      return
+      handleEndOfColorCycle();
+      // flipColor();
+      return;
     }
 
     const timerId = setInterval(() => {
       setColorCycleTimeLeft((t) => t - 1)
-    }, 1000)
-
-    return () => clearInterval(timerId)
+    }, 1000);
+    return () => clearInterval(timerId);
   }, [gamePhase, colorCycleTimeLeft, strikes, roundsCompleted])
 
-  function handleEndOfColorCycle() {
-    // Here, we NO LONGER record reaction time
-    // If the user has not done the correct action by now, that’s a fail
-    // (No success => no reaction time => no increment)
-    let success = false
+  function handleEndOfColorCycle(){
+     // If the user has not done the correct action by now, that’s a fail
+     setHasSucceededThisCycle(false);
+     let success = false; // no success -> no reaction time - no incrament
 
-    if (color === "green") {
-      // They needed to press => success if isHolding===true
-      success = isHolding
-    } else {
-      // color=red => success if isHolding===false
-      success = !isHolding
-    }
-
-    if (!success) {
-      addStrike()
-    }
-    // If success *had* happened, we recorded it in the mouse event 
-    // so there's nothing to do here
-
-    // Flip color
-    const newColor = (color === "green") ? "red" : "green"
-    setColor(newColor)
-
-    // Next cycle: 5–11 seconds
-    const randomDuration = randomInt(5, 11)
-    setColorCycleTimeLeft(randomDuration)
-    lastColorSwitchRef.current = Date.now()
+     if (color === "green") {
+       success = isHolding; //success if isHolding===true
+     } else {
+       success = !isHolding; // success if isHolding===false
+     };
+ 
+     if (!success) {
+       addStrike();
+     };
+ 
+     // flip color
+     const newColor = (color === "green") ? "red" : "green";
+     setColor(newColor);
+     const duration = randomInt(5, 10);
+     setColorCycleTimeLeft(duration);
+     lastColorSwitchRef.current = Date.now();
   }
 
-  /*************************************************
-   * 3. STRIKES
-   *************************************************/
+  // // flip color when the cycle ends
+  // function flipColor() {
+  //   // Reset hasSucceededThisCycle so user can do 1 success in new color
+  //   setHasSucceededThisCycle(false);
+
+  //   const newColor = color === "green" ? "red" : "green";
+  //   setColor(newColor);
+
+  //   const duration = randomInt(5, 11);
+  //   setColorCycleTimeLeft(duration);
+  //   lastColorSwitchRef.current = Date.now();
+  // }
+
   function addStrike() {
-    setStrikes((s) => {
-      const nextVal = s + 1
+    setStrikes((prev) => {
+      const nextVal = prev + 1;
       if (nextVal >= 3) {
-        endGame(false)
-      }
-      return nextVal
+        endGame(false);
+      };
+      return nextVal;
     })
   }
 
-  /*************************************************
-   * 4. END GAME
-   *************************************************/
-  function endGame(completedAllRounds) {
-    setGamePhase("done")
-    const totalGameTimeSec = ((Date.now() - (gameStartTime || Date.now())) / 1000).toFixed(2)
+  function endGame(success) {
+    setGamePhase("done");
+    const totalTimeSec = ((Date.now() - (gameStartTime || Date.now())) / 1000).toFixed(2);
 
-    if (!completedAllRounds) {
+    if (!success) {
       setFinalMessage(
-        `You earned 3 strikes! Game over.\nYou lasted ${totalGameTimeSec} seconds.`
-      )
+        `You earned 3 strikes! Game over.\nYou lasted ${totalTimeSec} seconds.`
+      );
     } else {
-      // Completed 10 color changes
-      const sum = reactionTimes.reduce((acc, val) => acc + val, 0)
-      const avgMs = sum / reactionTimes.length
-      const avgSec = (avgMs / 1000).toFixed(3)
+      // 10 successes
+      const sum = reactionTimes.reduce((acc, val) => acc + val, 0);
+      const avgMs = sum / reactionTimes.length;
+      const avgSec = (avgMs / 1000).toFixed(3);
 
       setFinalMessage(
         `Congratulations! You completed 10 color changes.\n` +
-          `Average Reaction Time: ${avgSec} seconds.\n` +
-          `Total Game Time: ${totalGameTimeSec} s.`
-      )
-    }
-    // Optional: Post results with axios
+        `Average Reaction Time: ${avgSec} seconds.`
+      );
+    };
   }
 
-  /*************************************************
-   * 5. MOUSE DOWN & UP (Recording Reaction in These Events)
-   *************************************************/
   function handleMouseDownInGame() {
+    // If the button is green => correct to press
     if (color === "green") {
-      // Pressing green => correct => record reaction time
-      const reaction = Date.now() - (lastColorSwitchRef.current || Date.now())
-      // Save reaction
-      setReactionTimes((arr) => [...arr, reaction])
-      setLastReactionTime(reaction)
-      setRoundsCompleted((r) => r + 1)
-
-      setIsHolding(true)
+      // Multiple fails are allowed, but only 1 success if hasn't succeeded yet
+      if (!hasSucceededThisCycle) {
+        if (color === "green" && (strikes === 1 || strikes === 2) && roundsCompleted === 0) {
+          // edge case
+        } else {
+          // record success
+        const reaction = Date.now() - (lastColorSwitchRef.current || Date.now());
+        setReactionTimes((arr) => [...arr, reaction]);
+        setLastReactionTime(reaction);
+        setRoundsCompleted((r) => r + 1);
+        setHasSucceededThisCycle(true);
+        };
+        
+      }
+      // Physically pressing now
+      setIsHolding(true);
     } else {
-      // Pressing red => strike
-      addStrike()
-    }
+      // color=red => pressing is wrong => add strike
+      addStrike();
+      // We allow multiple strikes if user presses multiple times on red
+      setIsHolding(true); // user physically pressed anyway
+    };
   }
 
   function handleMouseUpInGame() {
+    // If the button is red => correct to let go
     if (color === "red") {
-      // Letting go on red => correct => record reaction
-      const reaction = Date.now() - (lastColorSwitchRef.current || Date.now())
-      setReactionTimes((arr) => [...arr, reaction])
-      setLastReactionTime(reaction)
-      setRoundsCompleted((r) => r + 1)
+      if (!hasSucceededThisCycle) {
+        // Record success
+        const reaction = Date.now() - (lastColorSwitchRef.current || Date.now());
+        setReactionTimes((arr) => [...arr, reaction]);
+        setLastReactionTime(reaction);
+        setRoundsCompleted((r) => r + 1);
 
+        setHasSucceededThisCycle(true);
+      }
+      // physically let go
       setIsHolding(false)
     } else {
-      // Let go on green => strike
+      // color=green => letting go is wrong => strike
       addStrike()
+      // If the user repeatedly lets go on green, that can be multiple strikes
+      setIsHolding(false)
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // 6. RENDER: With Centered NavBar (Figma Style)
-  // ─────────────────────────────────────────────────────────────────
-  if (gamePhase === "preGame") {
+  const normalGreen = "#008000"
+  const darkGreen   = "#005500"
+  const normalRed   = "#FF0000"
+  const darkRed     = "#AA0000"
+
+  // "Wait" means user is pressing => darker color
+  let buttonBgColor
+  if (color === "green") {
+    buttonBgColor = isHolding ? darkGreen : normalGreen
+  } else {
+    buttonBgColor = isHolding ? darkRed : normalRed
+  }
+
+  if (gamePhase === "pregame") {
     return (
       <div className="min-h-screen flex flex-col bg-gray-100">
-        {/* Centered NavBar */}
+        {/* Nav */}
         <header className="w-full bg-gray-300 py-4 px-6 flex justify-center">
           <h1 className="text-2xl font-bold tracking-wide text-center">
             LAST MAN PLAYING
@@ -218,18 +227,20 @@ export default function ReactionGame() {
 
         <main className="flex flex-col items-center justify-center flex-1 p-4">
           <h2 className="text-3xl font-bold mb-4">RED LIGHT GREEN LIGHT</h2>
-          <p>{preGameTimeLeft} seconds to start</p>
+          <p>{pregameTimeLeft} seconds to start</p>
 
           <button
             style={{
-              backgroundColor: "blue",
+              backgroundColor: isHovering ? "#0000a0" : "blue",
               color: "white",
-              width: "200px",
-              height: "200px",
+              width: 200,
+              height: 200,
               fontSize: "1.5rem",
               borderRadius: "50%",
             }}
-            onMouseDown={handleMouseDownPreGame}
+            onMouseDown={handleMouseDownPregame}
+            onMouseEnter={() => setIsHovering(true)}
+            onMouseLeave={() => setIsHovering(false)}
           >
             HOLD DOWN TO START
           </button>
@@ -270,7 +281,7 @@ export default function ReactionGame() {
     )
   }
 
-  // IN-GAME PHASE
+  // IN-GAME
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
       <header className="w-full bg-gray-300 py-4 px-6 flex justify-center">
@@ -293,10 +304,10 @@ export default function ReactionGame() {
 
         <button
           style={{
-            backgroundColor: color === "green" ? "green" : "red",
+            backgroundColor: buttonBgColor,
             color: "white",
-            width: "200px",
-            height: "200px",
+            width: 200,
+            height: 200,
             fontSize: "1.5rem",
             borderRadius: "50%",
           }}
@@ -308,8 +319,8 @@ export default function ReactionGame() {
               ? "WAIT"
               : "HOLD"
             : isHolding
-            ? "WAIT"
-            : "LET GO"}
+            ? "LET GO"
+            : "WAIT"}
         </button>
 
         <div className="mt-4">
