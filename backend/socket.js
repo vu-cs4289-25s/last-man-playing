@@ -35,6 +35,20 @@ function init(server) {
       });
     });
 
+    //Example: Chat messages (added)
+    socket.on("chat-message", async ({ lobbyId, userId, text }) => {
+      console.log(`User ${userId} sent a chat in lobby ${lobbyId}: ${text}`);
+      io.to(`lobby-${lobbyId}`).emit("chat-message", {
+        userId,
+        text,
+      });
+    });
+
+    socket.on("chat-message", ({ lobbyId, userId, text }) => {
+      // broadcast to lobby, etc.
+      io.to(`lobby-${lobbyId}`).emit("chat-message", { userId, text })
+    })
+
     // Example: RPS
     socket.on('rps-move', ({ lobbyId, userId, move }) => {
       io.to(`lobby-${lobbyId}`).emit('rps-move-made', {

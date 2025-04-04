@@ -3,6 +3,7 @@
 import React from "react";
 import { Card, CardContent } from "../components/ui/card";
 // import { Button } from "../components/ui/button";
+import Chat from "../components/ui/chat";
 
 const StorePurchase = ({ points }) => (
   <div className="flex items-center justify-between w-full p-2 mb-2">
@@ -33,10 +34,14 @@ export default function Leaderboard() {
 
   // Mock store items
   const storeItems = [{ points: 100 }, { points: 250 }, { points: 400 }];
+  // added
+  const lobbyId = localStorage.getItem("lobbyId") || "123";
+  const userId = localStorage.getItem("myUserId") || "Guest";
 
+  // can use tailwind
   return (
-    <div className="flex flex-col items-center justify-start min-h-screen w-full bg-gray-100">
-      {/* Header */}
+    <div className="flex flex-col min-h-screen bg-gray-100">
+      {/* NAVBAR */}
       <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
         <div className="flex items-center space-x-4">
@@ -49,44 +54,44 @@ export default function Leaderboard() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex justify-center w-full max-w-5xl mt-8 px-4">
-        <div className="flex w-full gap-8">
-          {/* Store Section */}
-          <div className="w-1/4">
-            <h2 className="text-xl font-bold mb-4">ELIMINATED</h2>
-            <Card className="bg-gray-700 p-4">
-              <h3 className="text-white text-lg font-bold mb-4 text-center">
-                Store
-              </h3>
-              {storeItems.map((item, index) => (
-                <StorePurchase key={index} points={item.points} />
-              ))}
-            </Card>
-          </div>
-
-          {/* Leaderboard Section */}
-          <div className="w-2/4">
-            <Card>
-              <CardContent>
-                <h2 className="text-xl font-bold mb-4 text-center">
-                  LEADERBOARD
-                </h2>
-                {players.map((player, index) => (
-                  <PlayerScore
-                    key={index}
-                    name={player.name}
-                    score={player.score}
-                  />
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Empty Space for Game Area */}
-          <div className="w-1/4 bg-gray-900 rounded-lg"></div>
+      {/* MAIN: three columns in a flex row */}
+      <div className="flex flex-1">
+        {/* LEFT COLUMN: store */}
+        <div className="w-1/4 p-6">
+          <h2 className="text-xl font-bold mb-4">ELIMINATED</h2>
+          <Card className="bg-gray-700 p-4">
+            <h3 className="text-white text-lg font-bold mb-4 text-center">
+              Store
+            </h3>
+            {storeItems.map((item, index) => (
+              <StorePurchase key={index} points={item.points} />
+            ))}
+          </Card>
         </div>
-      </main>
+
+        {/* MIDDLE COLUMN: leaderboard */}
+        <div className="w-2/4 p-6">
+          <Card>
+            <CardContent>
+              <h2 className="text-xl font-bold mb-4 text-center">
+                LEADERBOARD
+              </h2>
+              {players.map((player, index) => (
+                <PlayerScore
+                  key={index}
+                  name={player.name}
+                  score={player.score}
+                />
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* RIGHT COLUMN: chat sidebar */}
+        <div className="w-1/4 h-full flex">
+          <Chat lobbyId={lobbyId} userId={userId} />
+        </div>
+      </div>
     </div>
   );
 }

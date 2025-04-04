@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { socket } from "../lib/socket";
 import { Button } from "../components/ui/button";
+import Chat from "../components/ui/chat";
 
 export default function LoadingLobby() {
   const [players, setPlayers] = useState([]);
@@ -63,15 +64,31 @@ export default function LoadingLobby() {
       .catch((err) => console.error("Error leaving lobby:", err));
   };
 
+  const myUserId = localStorage.getItem("myUserId"); // added
+  const lobbyId = localStorage.getItem("lobbyId"); // added
+
   return (
-    <div>
-      <h1>Lobby Status: {lobbyStatus}</h1>
-      <ul>
-        {players.map((player) => (
-          <li key={player.user_id}>{player.username}</li>
-        ))}
-      </ul>
-      <Button onClick={handleLeaveLobby}>Leave Lobby</Button>
+    <div className="flex min-h-screen">
+      {/* Left side: lobby info */}
+      <div className="flex-1 p-6">
+        <h1 className="text-2xl font-bold mb-4">Lobby Status: {lobbyStatus}</h1>
+        <ul className="list-disc list-inside mb-4">
+          {players.map((player) => (
+            <li key={player.user_id} className="pl-1">
+              {player.username}
+            </li>
+          ))}
+        </ul>
+        <Button onClick={handleLeaveLobby}>Leave Lobby</Button>
+      </div>
+
+      {/* Right side: the Chat with tabs */}
+      <Chat
+        lobbyId={lobbyId}
+        userId={myUserId}
+        players={players}
+        onLeaveLobby={handleLeaveLobby}
+      />
     </div>
   );
 }
