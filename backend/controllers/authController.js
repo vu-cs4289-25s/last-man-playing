@@ -28,7 +28,8 @@ exports.loginUser = async (req, res) => {
 
         return res.json({
             message: 'Login successful',
-            token: token
+            token: token,
+            user_id: existingUser.user_id
         });
     } catch (error) {
         console.error(error);
@@ -66,7 +67,8 @@ exports.registerUser = async (req, res) => {
 
         return res.status(201).json({
             message: 'User registered successfully',
-            token,
+            token: token,
+            user_id: newUser.user_id
         });
     } catch (error) {
         console.error('Error in registerUser:', error);

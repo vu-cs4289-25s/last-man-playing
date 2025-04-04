@@ -18,7 +18,7 @@ export default function Lobbies() {
 
   // Ensure the user is logged in (user_id exists)
   useEffect(() => {
-    const myUserId = localStorage.getItem("authToken");
+    const myUserId = localStorage.getItem("myUserId");
     if (!myUserId) {
       alert("You must be logged in to view lobbies.");
       navigate("/login");
