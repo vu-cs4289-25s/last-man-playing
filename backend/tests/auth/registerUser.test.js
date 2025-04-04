@@ -33,7 +33,7 @@ describe('registerUser',  () => {
         expect(res.json).toHaveBeenCalledWith({ message: 'All fields are required' });
     })
 
-    it('should return 409 if email is already used', async () => {
+    it('should return 409 if email is already in use', async () => {
         db.User.findOne.mockResolvedValue({ id: 1, email: 'test@example.com' });
 
         const req = {
@@ -53,7 +53,7 @@ describe('registerUser',  () => {
 
         expect(db.User.findOne).toHaveBeenCalledWith({where: {email: 'test@example.com'}});
         expect(res.status).toHaveBeenCalledWith(409);
-        expect(res.json).toHaveBeenCalledWith({ message: 'Email is already being used' });
+        expect(res.json).toHaveBeenCalledWith({ message: 'Email is already in use' });
     })
 
     it('should create a new user and return 201 with a token', async () => {

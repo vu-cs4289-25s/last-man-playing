@@ -227,7 +227,7 @@ exports.getGameStatus = async (req, res) => {
             return res.status(404).json({ message: 'Game not found' });
         }
 
-        const rounds = db.Rounds.findAll({ where: { game_id: gameId }});
+        const rounds = await db.Rounds.findAll({ where: { game_id: gameId }});
 
         return res.status(200).json({
             games,
