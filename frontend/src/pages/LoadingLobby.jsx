@@ -17,34 +17,31 @@ export default function LoadingLobby() {
       return;
     }
 
-    // Emit event to join the lobby room if not already joined
+    // Join the Socket.IO room for this lobby
     socket.emit("join-lobby", { lobbyId });
 
-    // Listen for lobby updates
+    // Listen for updates
     socket.on("lobby-update", (data) => {
       console.log("Received lobby-update:", data);
-      // Update lobby status or participants as needed.
       setLobbyStatus(data.action);
-
-      // IMPORTANT: here's where we store the updated list of players
       if (data.players) {
         setPlayers(data.players);
       }
     });
 
-    // Listen for a lobby closed event
+    // If the lobby is closed
     socket.on("lobby-closed", (data) => {
       alert("Lobby closed: " + data.message);
       navigate("/lobbies");
     });
 
     return () => {
+      // Clean up
       socket.off("lobby-update");
       socket.off("lobby-closed");
     };
   }, [navigate]);
 
-  // Example: A leave lobby button
   const handleLeaveLobby = () => {
     const lobbyId = localStorage.getItem("lobbyId");
     const myUserId = localStorage.getItem("myUserId");
@@ -60,9 +57,16 @@ export default function LoadingLobby() {
       .then((res) => res.json())
       .then((result) => {
         console.log("Leave lobby response:", result);
+        // Also tell socket we left
+        socket.emit("leave-lobby", { lobbyId });
         navigate("/lobbies");
       })
       .catch((err) => console.error("Error leaving lobby:", err));
+  };
+
+  // <---- NEW: Navigate to RPS Page ---->
+  const handleGoToRPS = () => {
+    navigate("/rps");
   };
 
   return (
@@ -73,8 +77,14 @@ export default function LoadingLobby() {
           <li key={player.user_id}>{player.username}</li>
         ))}
       </ul>
-    
-      <Button onClick={handleLeaveLobby}>Leave Lobby</Button>
+
+      <div style={{ marginTop: "1rem" }}>
+        <Button onClick={handleGoToRPS}>Play RPS</Button>
+      </div>
+
+      <Button onClick={handleLeaveLobby} style={{ marginTop: "1rem" }}>
+        Leave Lobby
+      </Button>
     </div>
   );
 }

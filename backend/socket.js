@@ -3,6 +3,22 @@
  ************************************************/
 let io;
 
+// In-memory object: { lobbyId: { userId: "rock"/"paper"/"scissors" } }
+const rpsMoves = {};
+
+// Helper to compute a single round’s winner
+function computeRPSWinner(userMove, opponentMove) {
+  if (userMove === opponentMove) return "tie";
+  if (
+    (userMove === "rock" && opponentMove === "scissors") ||
+    (userMove === "paper" && opponentMove === "rock") ||
+    (userMove === "scissors" && opponentMove === "paper")
+  ) {
+    return "user";
+  }
+  return "opponent";
+}
+
 function init(server) {
   const { Server } = require('socket.io');
 
@@ -35,12 +51,52 @@ function init(server) {
       });
     });
 
-    // Example: RPS
+    // -------------------------------------------
+    // ROCK-PAPER-SCISSORS EVENT
+    // -------------------------------------------
     socket.on('rps-move', ({ lobbyId, userId, move }) => {
-      io.to(`lobby-${lobbyId}`).emit('rps-move-made', {
-        userId,
-        move,
+      // 1) Record the user's move
+      if (!rpsMoves[lobbyId]) {
+        rpsMoves[lobbyId] = {};
+      }
+      rpsMoves[lobbyId][userId] = move; // e.g. 'rock'
+
+      // 2) Check how many players have moves in this lobby
+      const userIds = Object.keys(rpsMoves[lobbyId]);
+      if (userIds.length < 2) {
+        // We need at least 2 players. Wait for the second one.
+        return;
+      }
+
+      // For simplicity: pick the first two distinct users in this lobby
+      const [player1Id, player2Id] = userIds;
+      const player1Move = rpsMoves[lobbyId][player1Id];
+      const player2Move = rpsMoves[lobbyId][player2Id];
+
+      // 3) Compute each player's result
+      const p1Result = computeRPSWinner(player1Move, player2Move); // "user"|"opponent"|"tie"
+      const p2Result = computeRPSWinner(player2Move, player1Move); // reverse
+
+      // For clarity, map "user" -> that user is the winner, "opponent" -> that user lost
+      let winner = "tie";
+      if (p1Result === "user" && p2Result === "opponent") {
+        winner = player1Id; // The actual userId who won
+      } else if (p1Result === "opponent" && p2Result === "user") {
+        winner = player2Id;
+      }
+
+      // 4) Broadcast the result to the entire lobby
+      // Everyone in `lobby-<lobbyId>` will get 'rps-result'
+      io.to(`lobby-${lobbyId}`).emit('rps-result', {
+        player1Id,
+        player1Move,
+        player2Id,
+        player2Move,
+        winner, // either player1Id, player2Id, or "tie"
       });
+
+      // 5) Clear out the moves (optional) if you want fresh moves each round
+      rpsMoves[lobbyId] = {};
     });
 
     socket.on('disconnect', () => {
