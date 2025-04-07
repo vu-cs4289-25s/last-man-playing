@@ -25,6 +25,8 @@ export default function LoadingLobby() {
       console.log("Received lobby-update:", data);
       // Update lobby status or participants as needed.
       setLobbyStatus(data.action);
+
+      // IMPORTANT: here's where we store the updated list of players
       if (data.players) {
         setPlayers(data.players);
       }
@@ -71,6 +73,7 @@ export default function LoadingLobby() {
           <li key={player.user_id}>{player.username}</li>
         ))}
       </ul>
+    
       <Button onClick={handleLeaveLobby}>Leave Lobby</Button>
     </div>
   );

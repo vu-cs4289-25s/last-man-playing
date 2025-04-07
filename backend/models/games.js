@@ -1,3 +1,5 @@
+// backend/models/games.js
+
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
 
