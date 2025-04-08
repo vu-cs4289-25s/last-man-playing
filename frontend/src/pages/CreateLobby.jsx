@@ -3,9 +3,15 @@
  ************************************************/
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
+import Header from "../components/ui/header";
 
 export default function CreateLobby() {
   const navigate = useNavigate();
@@ -57,14 +63,7 @@ export default function CreateLobby() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
-      <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
-        <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
-        <img
-          src="https://via.placeholder.com/40"
-          alt="Profile"
-          className="w-10 h-10 rounded-full border-2 border-gray-500"
-        />
-      </header>
+      <Header />
 
       <main className="flex flex-col flex-1 items-center justify-center p-4">
         <Card className="w-full max-w-2xl p-6 bg-white shadow-lg">
@@ -104,7 +103,9 @@ export default function CreateLobby() {
 
               {isPrivate && (
                 <div>
-                  <label className="block mb-1 font-medium">Lobby Password</label>
+                  <label className="block mb-1 font-medium">
+                    Lobby Password
+                  </label>
                   <Input
                     type="text"
                     value={lobbyPassword}
@@ -116,7 +117,10 @@ export default function CreateLobby() {
               )}
 
               <div className="flex justify-end mt-8">
-                <Button type="submit" className="bg-green-600 text-white hover:bg-green-700">
+                <Button
+                  type="submit"
+                  className="bg-green-600 text-white hover:bg-green-700"
+                >
                   Create
                 </Button>
               </div>

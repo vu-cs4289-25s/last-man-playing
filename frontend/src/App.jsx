@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { UserProvider } from "./context/UserContext";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -11,26 +12,30 @@ import CreateLobby from "./pages/CreateLobby";
 import Lobbies from "./pages/Lobbies";
 import ReactionGame from "./pages/ReactionGame";
 import RockPaperScissors from "./pages/RockPaperScissors";
+import MathBlitz from "./pages/MathBlitz";
 
 export default function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/how-to-play" element={<HowToPlay />} />
-        <Route path="/profile" element={<Profile />} />{" "}
-        {/* Add Profile Route */}
-        <Route path="/leaderboard" element={<Leaderboard />} />{" "}
-        {/* Add Leaderboard Route after games are made */}
-        <Route path="/loadinglobby" element={<LoadingLobby />} />{" "}
-        {/* Add loading lobby Route after games state development*/}
-        <Route path="/createlobby" element={<CreateLobby />} />
-        <Route path="/lobbies" element={<Lobbies />} />
-        <Route path="/reactiongame" element={<ReactionGame />} />
-        <Route path="/rps" element={<RockPaperScissors />} />
-      </Routes>
-    </Router>
+    <UserProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/how-to-play" element={<HowToPlay />} />
+          <Route path="/profile" element={<Profile />} />{" "}
+          {/* Add Profile Route */}
+          <Route path="/leaderboard" element={<Leaderboard />} />{" "}
+          {/* Add Leaderboard Route after games are made */}
+          <Route path="/loadinglobby" element={<LoadingLobby />} />{" "}
+          {/* Add loading lobby Route after games state development*/}
+          <Route path="/createlobby" element={<CreateLobby />} />
+          <Route path="/lobbies" element={<Lobbies />} />
+          <Route path="/reactiongame" element={<ReactionGame />} />
+          <Route path="/rps" element={<RockPaperScissors />} />
+          <Route path="/mathblitz" element={<MathBlitz />} />
+        </Routes>
+      </Router>
+    </UserProvider>
   );
 }
