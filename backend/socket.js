@@ -35,50 +35,90 @@ function init(server) {
   io.on("connection", (socket) => {
     console.log("New client connected:", socket.id);
 
-    // Join-lobby
-    socket.on("join-lobby", ({ lobbyId }) => {
+    // On "join-lobby" event
+    socket.on("join-lobby", ({ lobbyId, userId, username, profilePic }) => {
+      console.log(`Socket ${socket.id} is joining lobby ${lobbyId}`);
+
+      // Ensure the lobby exists in the lobbyPlayers object
+      if (!lobbyPlayers[lobbyId]) {
+        lobbyPlayers[lobbyId] = [];
+      }
+
+      // Check if player already exists in the lobby
+      const playerExists = lobbyPlayers[lobbyId].some(
+        (player) => player.user_id === userId
+      );
+      if (playerExists) {
+        console.log(
+          `Player with user_id ${userId} already in lobby ${lobbyId}`
+        );
+        return; // Player already in lobby, do nothing
+      }
+
+      // Add the player to the lobby's player list
+      lobbyPlayers[lobbyId].push({
+        user_id: userId,
+        username: username,
+        profilePic: profilePic || "https://placekitten.com/40/40", // Fallback image if none provided
+      });
+
       socket.join(`lobby-${lobbyId}`);
-      console.log(`Socket ${socket.id} joined lobby-${lobbyId}`);
-      // If you want, broadcast a 'lobby-update' to that room
+
+      // Emit the updated player list to all users in the lobby
       io.to(`lobby-${lobbyId}`).emit("lobby-update", {
-        msg: `Socket ${socket.id} joined lobby-${lobbyId}`,
+        msg: `Socket ${socket.id} joined lobby ${lobbyId}`,
+        players: lobbyPlayers[lobbyId], // Send the updated list of players
+        creatorId: lobbyPlayers[lobbyId][0]?.user_id, // Assuming the first player is the creator
       });
     });
 
-    // Leave-lobby
-    socket.on("leave-lobby", ({ lobbyId }) => {
+    // Example: leaving a lobby
+    socket.on("leave-lobby", ({ lobbyId, userId }) => {
+      console.log(`Socket ${socket.id} leaving lobby ${lobbyId}`);
+
+      // Remove the player from the lobby's player list
+      if (lobbyPlayers[lobbyId]) {
+        lobbyPlayers[lobbyId] = lobbyPlayers[lobbyId].filter(
+          (player) => player.user_id !== userId
+        );
+      }
+
       socket.leave(`lobby-${lobbyId}`);
-      console.log(`Socket ${socket.id} left lobby-${lobbyId}`);
-      // If you want, broadcast a 'lobby-update' to that room
+
+      // Emit the updated player list to all users in the lobby
       io.to(`lobby-${lobbyId}`).emit("lobby-update", {
-        msg: `Socket ${socket.id} left lobby-${lobbyId}`,
+        msg: `Socket ${socket.id} left lobby ${lobbyId}`,
+        players: lobbyPlayers[lobbyId], // Send the updated list of players
+        creatorId: lobbyPlayers[lobbyId][0]?.user_id, // Update creatorId
       });
     });
 
     // Chat messages
     socket.on("chat-message", (data) => {
-      console.log("chat-message received:", data);  // log the full incoming payload
+      console.log("chat-message received:", data); // log the full incoming payload
       const { lobbyId, username, text } = data;
-    
+
       console.log(`User ${username} in lobby-${lobbyId} says: ${text}`);
-    
+
       io.to(`lobby-${lobbyId}`).emit("chat-message", {
         username,
         text,
       });
     });
-    
 
     // ReactionGame finish
     socket.on("reaction-finished", (data) => {
       const { lobbyId, userId, isOut, totalTimeSec, avgReactionSec } = data;
-      console.log('User ${userId} done with ReactionGame in lobby-${lobbyId}', data);
+      console.log(
+        "User ${userId} done with ReactionGame in lobby-${lobbyId}",
+        data
+      );
       if (!reactionResults[lobbyId]) {
         reactionResults[lobbyId] = {};
       }
       reactionResults[lobbyId][userId] = {
         isOut,
-        totalTimeSec, 
+        totalTimeSec,
         avgReactionSec,
       };
 
@@ -91,15 +131,17 @@ function init(server) {
       });
 
       if (doneCount >= totalPlayers) {
-        const resultsArr = Object.entries(reactionResults[lobbyId]).map(([uId, info]) => ({
-          userId: uId,
-          ...info
-        }));
+        const resultsArr = Object.entries(reactionResults[lobbyId]).map(
+          ([uId, info]) => ({
+            userId: uId,
+            ...info,
+          })
+        );
 
-        const successes = resultsArr.filter(r => !r.isOut);
-        const fails = resultsArr.filter(r => r.isOut);
+        const successes = resultsArr.filter((r) => !r.isOut);
+        const fails = resultsArr.filter((r) => r.isOut);
 
-        successes.sort((a,b) => a.avgReactionSec - b.avgReactionSec);
+        successes.sort((a, b) => a.avgReactionSec - b.avgReactionSec);
         fails.sort((a, b) => b.totalTimeSec - a.totalTimeSec);
 
         const finalRanking = [...successes, ...fails];
@@ -113,13 +155,14 @@ function init(server) {
 
         io.to(`lobby-${lobbyId}`).emit("reaction-all-done", {
           finalRanking,
-          message: "All players done, game over. 5 second countdown to leaderboard..."
+          message:
+            "All players done, game over. 5 second countdown to leaderboard...",
         });
 
         setTimeout(() => {
           io.to(`lobby-${lobbyId}`).emit("reaction-go-leaderboard");
         }, 5000);
-  
+
         // delete reactionResults[lobbyId];
       }
     });

@@ -1,11 +1,16 @@
 // frontend/src/pages/Lobbies.jsx
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { socket } from "../lib/socket";
+import Header from "../components/ui/header";
 
 function normalizeLobbyName(str) {
   return str.toLowerCase().replace(/[^a-z0-9 ]/g, "");
@@ -109,19 +114,7 @@ export default function Lobbies() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
-        <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
-        <div className="flex items-center gap-4">
-          <img
-            src="https://via.placeholder.com/40"
-            alt="Profile"
-            className="w-10 h-10 rounded-full border-2 border-gray-500"
-          />
-          <Button onClick={handleLogout} className="bg-red-500 text-white hover:bg-red-600">
-            Logout
-          </Button>
-        </div>
-      </header>
+      <Header />
 
       <main className="flex-1 bg-gray-100 p-4 flex flex-col items-center">
         <Card className="w-full max-w-5xl">
