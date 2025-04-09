@@ -36,22 +36,22 @@ exports.getPublicLobbies = async (req, res) => {
 exports.createLobby = async (req, res) => {
   try {
     const { lobby_name, is_private = false, password = null, user_id } = req.body;
-    
+
     // Require a logged in user
     if (!user_id) {
       return res.status(401).json({ message: 'User must be logged in to create a lobby' });
     }
-    
+
     // Verify that the user exists
     const existingUser = await db.User.findOne({ where: { user_id } });
     if (!existingUser) {
       return res.status(401).json({ message: 'User not found. Please log in again.' });
     }
-    
+
     if (!lobby_name) {
       return res.status(400).json({ message: 'Lobby name is required' });
     }
-    
+
     // Create the Lobby with a new unique ID
     const newLobbyId = uuidv4();
     const newLobby = await db.Lobby.create({
@@ -62,22 +62,37 @@ exports.createLobby = async (req, res) => {
       created_by: user_id,
       created_at: new Date()
     }, { timestamps: false });
-    
+
     // Add the creator to LobbyParticipants
     await db.LobbyParticipants.create({
       lobby_id: newLobbyId,
       user_id: user_id,
       joined_at: new Date()
     });
-    
+
+    // **NEW**: Build a list of current participants (in this case just the creator)
+    const participants = await db.LobbyParticipants.findAll({
+      where: { lobby_id: newLobbyId },
+      include: [{
+        model: db.User,
+        attributes: ['user_id', 'username']
+      }]
+    });
+    const players = participants.map(p => ({
+      user_id: p.User.user_id,
+      username: p.User.username,
+    }));
+
     // Emit a Socket.IO event to notify clients that a lobby has been created.
     const io = getIO();
     io.to(`lobby-${newLobbyId}`).emit("lobby-update", {
       action: "created",
       lobbyId: newLobbyId,
       creator: user_id,
+      // **NEW**: send the players array so the frontend sees who’s in
+      players
     });
-    
+
     return res.status(201).json({
       message: 'Lobby created successfully',
       lobby: newLobby
@@ -88,25 +103,25 @@ exports.createLobby = async (req, res) => {
   }
 };
 
+
 exports.joinLobby = async (req, res) => {
   try {
     const { lobby_id, password = null, user_id } = req.body;
     if (!lobby_id) {
       return res.status(400).json({ message: 'lobby_id is required' });
     }
-    
+
     // Require a logged in user
     if (!user_id) {
       return res.status(401).json({ message: 'User must be logged in to join a lobby' });
     }
-    const joinerId = user_id;
-    
+
     // Find the lobby
     const lobby = await db.Lobby.findOne({ where: { lobby_id } });
     if (!lobby) {
       return res.status(404).json({ message: 'Lobby not found' });
     }
-    
+
     // If the lobby is private, check the password
     if (lobby.is_private) {
       if (!password) {
@@ -116,43 +131,57 @@ exports.joinLobby = async (req, res) => {
         return res.status(401).json({ message: 'Incorrect password' });
       }
     }
-    
+
     // Check if lobby is full
     const participantCount = await db.LobbyParticipants.count({ where: { lobby_id } });
     if (participantCount >= 6) {
       return res.status(401).json({ message: 'Lobby is full' });
     }
-    
+
     // Check if user is already in the lobby
     const existingParticipant = await db.LobbyParticipants.findOne({
-      where: { lobby_id, user_id: joinerId }
+      where: { lobby_id, user_id }
     });
     if (existingParticipant) {
       return res.status(200).json({ message: 'Already in lobby' });
     }
-    
+
     // Verify that the user exists
-    const existingUser = await db.User.findOne({ where: { user_id: joinerId } });
+    const existingUser = await db.User.findOne({ where: { user_id } });
     if (!existingUser) {
       return res.status(401).json({ message: 'User not found. Please log in again.' });
     }
-    
+
     // Add user to lobby participants
     await db.LobbyParticipants.create({
       lobby_id,
-      user_id: joinerId,
+      user_id,
       joined_at: new Date()
     });
-    
-    // Emit a Socket.IO event to notify clients in this lobby room.
-    const io = getIO();
-    io.to(`lobby-${lobby_id}`).emit("lobby-update", {
-      action: "join",
-      lobbyId: lobby_id,
-      userId: joinerId,
+
+    // 1) Fetch updated list of participants (including usernames)
+    const participants = await db.LobbyParticipants.findAll({
+      where: { lobby_id },
+      include: [{
+        model: db.User,
+        attributes: ['user_id', 'username']
+      }]
     });
-    
-    return res.status(200).json({ message: 'Joined lobby successfully', userId: joinerId });
+    const players = participants.map((p) => ({
+      user_id: p.User.user_id,
+      username: p.User.username
+    }));
+
+    // 2) Broadcast to everyone in this lobby
+    const io = getIO();
+    io.to(`lobby-${lobby_id}`).emit('lobby-update', {
+      action: 'join',
+      lobbyId: lobby_id,
+      // Provide the entire array so every client can refresh
+      players
+    });
+
+    return res.status(200).json({ message: 'Joined lobby successfully', userId: user_id });
   } catch (error) {
     console.error('Error in joinLobby:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -165,20 +194,20 @@ exports.leaveLobby = async (req, res) => {
     if (!lobby_id || !user_id) {
       return res.status(400).json({ message: 'lobby_id and user_id are required' });
     }
-    
+
     const participant = await db.LobbyParticipants.findOne({ where: { lobby_id, user_id } });
     if (!participant) {
       return res.status(400).json({ message: 'You are not in this lobby' });
     }
-    
+
     const lobby = await db.Lobby.findOne({ where: { lobby_id } });
     if (!lobby) {
       return res.status(400).json({ message: 'Lobby not found' });
     }
-    
+
     // Remove the user from the lobby
     await participant.destroy();
-    
+
     // If the user was the lobby leader, handle promotion or destruction
     if (lobby.created_by === user_id) {
       const remaining = await db.LobbyParticipants.findAll({
@@ -189,9 +218,9 @@ exports.leaveLobby = async (req, res) => {
         await lobby.destroy();
         // Emit lobby-closed event because the lobby is now empty
         const io = getIO();
-        io.to(`lobby-${lobby_id}`).emit("lobby-closed", {
+        io.to(`lobby-${lobby_id}`).emit('lobby-closed', {
           lobbyId: lobby_id,
-          message: "Lobby closed (no participants remain)",
+          message: 'Lobby closed (no participants remain)',
         });
         return res.status(200).json({ message: 'Lobby closed (no participants remain)' });
       } else {
@@ -199,21 +228,36 @@ exports.leaveLobby = async (req, res) => {
         await lobby.update({ created_by: newLeader.user_id });
       }
     }
-    
-    // Emit a Socket.IO event for leaving
+
+    // 1) Fetch the *new* list of participants
+    const updatedParticipants = await db.LobbyParticipants.findAll({
+      where: { lobby_id },
+      include: [{
+        model: db.User,
+        attributes: ['user_id', 'username']
+      }]
+    });
+    const players = updatedParticipants.map((p) => ({
+      user_id: p.User.user_id,
+      username: p.User.username,
+    }));
+
+    // 2) Broadcast the updated list
     const io = getIO();
-    io.to(`lobby-${lobby_id}`).emit("lobby-update", {
-      action: "leave",
+    io.to(`lobby-${lobby_id}`).emit('lobby-update', {
+      action: 'leave',
       lobbyId: lobby_id,
       userId: user_id,
+      players
     });
-    
+
     return res.status(200).json({ message: 'Left lobby successfully' });
   } catch (error) {
     console.error('Error in leaveLobby:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 
 // Remove a player (optional; still no auth)
 exports.removePlayer = async (req, res) => {

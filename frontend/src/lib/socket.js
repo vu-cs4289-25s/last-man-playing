@@ -1,8 +1,7 @@
 import { io } from 'socket.io-client';
 
-export const socket = io('/', {
-  path: '/socket.io',
-  autoConnect: true,
+export const socket = io({
+  autoConnect: false,
 });
 
 socket.on('connect_error', (err) => {

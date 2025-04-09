@@ -17,16 +17,20 @@ export default function LoadingLobby() {
 
     // Join the lobby
     console.log("LoadingLobby: Emitting join-lobby =>", lobbyId);
+    // Join the Socket.IO room for this lobby
     socket.emit("join-lobby", { lobbyId });
 
+    // Listen for updates
     socket.on("lobby-update", (data) => {
       console.log("LoadingLobby: Received lobby-update =>", data);
+      console.log("Received lobby-update:", data);
       setLobbyStatus(data.action);
       if (data.players) {
         setPlayers(data.players);
       }
     });
 
+    // If the lobby is closed
     socket.on("lobby-closed", (data) => {
       console.log("LoadingLobby: Received lobby-closed =>", data);
       alert("Lobby closed: " + data.message);
@@ -34,6 +38,7 @@ export default function LoadingLobby() {
     });
 
     return () => {
+      // Clean up
       socket.off("lobby-update");
       socket.off("lobby-closed");
     };
@@ -52,12 +57,20 @@ export default function LoadingLobby() {
       body: JSON.stringify({ lobby_id: lobbyId, user_id: myUserId }),
     })
       .then((res) => res.json())
-      .then(() => navigate("/lobbies"))
+      .then((result) => {
+        console.log("Leave lobby response:", result);
+        navigate("/lobbies");
+      })
       .catch((err) => console.error("Error leaving lobby:", err));
   };
 
   const lobbyId = localStorage.getItem("lobbyId") || "";
   const myUserId = localStorage.getItem("myUserId") || "Guest";
+
+  // <---- NEW: Navigate to RPS Page ---->
+  const handleGoToRPS = () => {
+    navigate("/rps");
+  };
 
   return (
     <div className="relative w-full min-h-screen bg-gray-100">
