@@ -14,8 +14,6 @@ const sequelize = new Sequelize(
 
 module.exports = sequelize;
 
-// /backend/config/database.js
-
 // require('dotenv').config({ path: '../.env' });
 // const { Sequelize } = require('sequelize');
 
