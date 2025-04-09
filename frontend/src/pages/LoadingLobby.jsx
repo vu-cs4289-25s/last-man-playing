@@ -15,30 +15,23 @@ export default function LoadingLobby() {
     const lobbyId = localStorage.getItem("lobbyId");
     if (!lobbyId) return;
 
-    // Join the lobby
-    console.log("LoadingLobby: Emitting join-lobby =>", lobbyId);
-    // Join the Socket.IO room for this lobby
     socket.emit("join-lobby", { lobbyId });
 
-    // Listen for updates
     socket.on("lobby-update", (data) => {
-      console.log("LoadingLobby: Received lobby-update =>", data);
-      console.log("Received lobby-update:", data);
-      setLobbyStatus(data.action);
+      console.log("LoadingLobby: Received lobby-update:", data);
+      setLobbyStatus(data.msg || data.action);
       if (data.players) {
         setPlayers(data.players);
       }
     });
 
-    // If the lobby is closed
     socket.on("lobby-closed", (data) => {
-      console.log("LoadingLobby: Received lobby-closed =>", data);
+      console.log("LoadingLobby: Received lobby-closed:", data);
       alert("Lobby closed: " + data.message);
       navigate("/lobbies");
     });
 
     return () => {
-      // Clean up
       socket.off("lobby-update");
       socket.off("lobby-closed");
     };
@@ -57,20 +50,12 @@ export default function LoadingLobby() {
       body: JSON.stringify({ lobby_id: lobbyId, user_id: myUserId }),
     })
       .then((res) => res.json())
-      .then((result) => {
-        console.log("Leave lobby response:", result);
-        navigate("/lobbies");
-      })
+      .then(() => navigate("/lobbies"))
       .catch((err) => console.error("Error leaving lobby:", err));
   };
 
   const lobbyId = localStorage.getItem("lobbyId") || "";
   const myUserId = localStorage.getItem("myUserId") || "Guest";
-
-  // <---- NEW: Navigate to RPS Page ---->
-  const handleGoToRPS = () => {
-    navigate("/rps");
-  };
 
   return (
     <div className="relative w-full min-h-screen bg-gray-100">
@@ -86,7 +71,7 @@ export default function LoadingLobby() {
         </div>
       </header>
 
-      {/* MAIN CONTENT: we pad right so it doesn't hide behind the pinned chat */}
+      {/* MAIN CONTENT */}
       <main className="pt-6 px-6 pr-[350px]">
         <h1 className="text-2xl font-bold mb-4">Lobby Status: {lobbyStatus}</h1>
         <ul className="list-disc list-inside mb-4">
@@ -99,13 +84,13 @@ export default function LoadingLobby() {
         <Button onClick={handleLeaveLobby}>Leave Lobby</Button>
       </main>
 
-      {/* PINNED CHAT: below navbar, from right, 350px wide */}
+      {/* PINNED CHAT: 350px on right, below navbar => top=64px if navbar=64px tall */}
       <div
         className="fixed bg-[#1f2430] border-l border-gray-700"
         style={{
           width: "350px",
           right: 0,
-          top: "72px", // If your navbar is 64px tall
+          top: "72px",
           height: "calc(100vh - 72px)",
         }}
       >

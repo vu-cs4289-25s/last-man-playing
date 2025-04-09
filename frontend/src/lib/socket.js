@@ -1,9 +1,12 @@
-import { io } from 'socket.io-client';
+// frontend/src/lib/socket.js
 
-export const socket = io({
-  autoConnect: false,
+import { io } from "socket.io-client";
+
+export const socket = io("/", {
+  path: "/socket.io",
+  autoConnect: true,
 });
 
-socket.on('connect_error', (err) => {
-  console.error('Socket connect_error', err);
+socket.on("connect_error", (err) => {
+  console.error("Socket connect_error:", err);
 });
