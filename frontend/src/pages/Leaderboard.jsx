@@ -1,9 +1,7 @@
-// // frontend/src/pages/Leaderboard.jsx
 
 // import React from "react";
 // import { Card, CardContent } from "../components/ui/card";
-// // import { Button } from "../components/ui/button";
-// // import { Chat } from "../components/ui/chat";
+// import Chat from "../components/ui/chat"; // import your Chat component
 
 // const StorePurchase = ({ points }) => (
 //   <div className="flex items-center justify-between w-full p-2 mb-2">
@@ -16,7 +14,7 @@
 
 // const PlayerScore = ({ name, score }) => (
 //   <div className="flex justify-between items-center p-3 bg-gray-200 mb-1">
-//     <span className="font-medium">{name}</span>S
+//     <span className="font-medium">{name}</span>
 //     <span className="font-medium">{score} pts</span>
 //   </div>
 // );
@@ -34,63 +32,69 @@
 
 //   // Mock store items
 //   const storeItems = [{ points: 100 }, { points: 250 }, { points: 400 }];
-//   // added
-//   // const lobbyId = localStorage.getItem("lobbyId") || "123";
-//   // const userId = localStorage.getItem("myUserId") || "Guest";
 
-//   // can use tailwind
+//   // If your Chat expects these from localStorage:
+//   const lobbyId = localStorage.getItem("lobbyId") || "123";
+//   const userId = localStorage.getItem("myUserId") || "Guest";
+
 //   return (
-//     <div className="flex flex-col min-h-screen bg-gray-100">
-//       {/* NAVBAR */}
+//     <div className="flex flex-col items-center justify-start min-h-screen w-full bg-gray-100">
+//       {/* Header */}
 //       <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
 //         <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
 //         <div className="flex items-center space-x-4">
 //           <span className="text-xl font-bold">Time: 55</span>
 //           <img
+//             src="/api/placeholder/40/40"
 //             alt="Profile"
 //             className="w-10 h-10 rounded-full border-2 border-gray-500"
 //           />
 //         </div>
 //       </header>
 
-//       {/* MAIN: three columns in a flex row */}
-//       <div className="flex flex-1">
-//         {/* LEFT COLUMN: store */}
-//         <div className="w-1/4 p-6">
-//           <h2 className="text-xl font-bold mb-4">ELIMINATED</h2>
-//           <Card className="bg-gray-700 p-4">
-//             <h3 className="text-white text-lg font-bold mb-4 text-center">
-//               Store
-//             </h3>
-//             {storeItems.map((item, index) => (
-//               <StorePurchase key={index} points={item.points} />
-//             ))}
-//           </Card>
-//         </div>
-
-//         {/* MIDDLE COLUMN: leaderboard */}
-//         <div className="w-2/4 p-6">
-//           <Card>
-//             <CardContent>
-//               <h2 className="text-xl font-bold mb-4 text-center">
-//                 LEADERBOARD
-//               </h2>
-//               {players.map((player, index) => (
-//                 <PlayerScore
-//                   key={index}
-//                   name={player.name}
-//                   score={player.score}
-//                 />
+//       {/* Main Content */}
+//       <main className="flex justify-center w-full max-w-5xl mt-8 px-4">
+//         <div className="flex w-full gap-8">
+//           {/* Store Section (left) */}
+//           <div className="w-1/4">
+//             <h2 className="text-xl font-bold mb-4">ELIMINATED</h2>
+//             <Card className="bg-gray-700 p-4">
+//               <h3 className="text-white text-lg font-bold mb-4 text-center">
+//                 Store
+//               </h3>
+//               {storeItems.map((item, index) => (
+//                 <StorePurchase key={index} points={item.points} />
 //               ))}
-//             </CardContent>
-//           </Card>
-//         </div>
+//             </Card>
+//           </div>
 
-//         {/* RIGHT COLUMN: chat sidebar */}
-//         {/*<div className="w-1/4 flex">
-//           <Chat lobbyId={lobbyId} userId={userId} />
-//         </div>*/}
-//       </div>
+//           {/* Leaderboard Section (middle) */}
+//           <div className="w-2/4">
+//             <Card>
+//               <CardContent>
+//                 <h2 className="text-xl font-bold mb-4 text-center">
+//                   LEADERBOARD
+//                 </h2>
+//                 {players.map((player, index) => (
+//                   <PlayerScore
+//                     key={index}
+//                     name={player.name}
+//                     score={player.score}
+//                   />
+//                 ))}
+//               </CardContent>
+//             </Card>
+//           </div>
+
+//           {/* Right Column: Chat */}
+//           <div className="w-1/4 h-full">
+//             <Chat
+//               lobbyId={lobbyId}
+//               userId={userId}
+//             />
+//           </div>
+//         </div>
+//       </main>
 //     </div>
 //   );
 // }
@@ -98,9 +102,11 @@
 
 // frontend/src/pages/Leaderboard.jsx
 
+// frontend/src/pages/Leaderboard.jsx
+
 import React from "react";
 import { Card, CardContent } from "../components/ui/card";
-// import { Button } from "../components/ui/button";
+import Chat from "../components/ui/chat";
 
 const StorePurchase = ({ points }) => (
   <div className="flex items-center justify-between w-full p-2 mb-2">
@@ -119,7 +125,7 @@ const PlayerScore = ({ name, score }) => (
 );
 
 export default function Leaderboard() {
-  // Mock data for the leaderboard
+  // Mock data
   const players = [
     { name: "Player 1", score: 750 },
     { name: "Player 2", score: 650 },
@@ -129,12 +135,15 @@ export default function Leaderboard() {
     { name: "Player 6", score: 350 },
   ];
 
-  // Mock store items
   const storeItems = [{ points: 100 }, { points: 250 }, { points: 400 }];
 
+  // If Chat expects them:
+  const lobbyId = localStorage.getItem("lobbyId") || "123";
+  const userId = localStorage.getItem("myUserId") || "Guest";
+
   return (
-    <div className="flex flex-col items-center justify-start min-h-screen w-full bg-gray-100">
-      {/* Header */}
+    <div className="bg-gray-100 min-h-screen w-full">
+      {/* Header (100% wide) */}
       <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
         <div className="flex items-center space-x-4">
@@ -147,11 +156,14 @@ export default function Leaderboard() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex justify-center w-full max-w-5xl mt-8 px-4">
-        <div className="flex w-full gap-8">
-          {/* Store Section */}
-          <div className="w-1/4">
+      {/* A fixed-width container centered horizontally */}
+      <main
+        className="mx-auto mt-8 px-4"
+        style={{ width: "1200px" }} // total fixed width
+      >
+        <div className="flex gap-4">
+          {/* LEFT: Store */}
+          <div style={{ width: "250px" }}>
             <h2 className="text-xl font-bold mb-4">ELIMINATED</h2>
             <Card className="bg-gray-700 p-4">
               <h3 className="text-white text-lg font-bold mb-4 text-center">
@@ -163,8 +175,8 @@ export default function Leaderboard() {
             </Card>
           </div>
 
-          {/* Leaderboard Section */}
-          <div className="w-2/4">
+          {/* MIDDLE: Leaderboard */}
+          <div style={{ width: "500px" }}>
             <Card>
               <CardContent>
                 <h2 className="text-xl font-bold mb-4 text-center">
@@ -181,10 +193,14 @@ export default function Leaderboard() {
             </Card>
           </div>
 
-          {/* Empty Space for Game Area */}
-          <div className="w-1/4 bg-gray-900 rounded-lg"></div>
+          {/* RIGHT: Chat */}
+          <div style={{ width: "350px" }} className="h-[600px] overflow-hidden">
+            {/* If you want chat to fill the container fully, set h-[600px] or something */}
+            <Chat lobbyId={lobbyId} userId={userId} />
+          </div>
         </div>
       </main>
     </div>
   );
 }
+
