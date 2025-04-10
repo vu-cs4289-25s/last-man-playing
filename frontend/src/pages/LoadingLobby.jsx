@@ -60,7 +60,7 @@ export default function LoadingLobby() {
     socket.emit("join-lobby", {
       lobbyId,
       userId: myUserId,
-      username: user?.username,
+      username: user?.username || `Player ${myUserId.slice(0, 4)}`,
       profilePic: user?.profilePic,
     });
 
@@ -96,6 +96,7 @@ export default function LoadingLobby() {
 
     return () => {
       socket.off("lobby-update");
+      socket.off("game-started");
       socket.off("lobby-closed");
       socket.off("game-started");
     };

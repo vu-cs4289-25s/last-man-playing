@@ -19,7 +19,7 @@ export default function Header() {
 
   return (
     <header className="w-full flex items-center justify-between px-6 py-4 bg-white shadow-md">
-      <Link to="/" className="text-2xl font-bold text-blue-600">
+      <Link to="/" className="text-2xl font-bold text-black-600">
         Last Man Playing
       </Link>
 
