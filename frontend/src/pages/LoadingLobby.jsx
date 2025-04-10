@@ -1,27 +1,59 @@
-// frontend/src/pages/LoadingLobby.jsx
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "../components/ui/button";
 import { socket } from "../lib/socket";
 import Chat from "../components/ui/chat";
 
+function PlayerCard({ username, isLoading, isReady, style }) {
+  return (
+    <div
+      style={style}
+      className={`absolute bg-[#0D1117] text-white rounded-md px-4 py-2
+        flex items-center space-x-2 w-48 transform -translate-x-1/2 -translate-y-1/2
+        ${isLoading ? "opacity-70" : ""} ${isReady ? "border-2 border-green-500" : ""}`}
+    >
+      <img
+        src="/api/placeholder/24/24"
+        alt="Player avatar"
+        className="w-6 h-6 rounded-full"
+      />
+      <span className="font-medium">
+        {isLoading ? (
+          <div className="flex items-center space-x-2">
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <span>Loading</span>
+          </div>
+        ) : (
+          username
+        )}
+      </span>
+    </div>
+  );
+}
+
 export default function LoadingLobby() {
+  const navigate = useNavigate();
   const [players, setPlayers] = useState([]);
   const [lobbyStatus, setLobbyStatus] = useState("");
-  const navigate = useNavigate();
+  const [isAllPlayersReady, setIsAllPlayersReady] = useState(false);
 
   useEffect(() => {
     const lobbyId = localStorage.getItem("lobbyId");
     if (!lobbyId) return;
 
+    console.log("LoadingLobby: join-lobby =>", lobbyId);
     socket.emit("join-lobby", { lobbyId });
 
     socket.on("lobby-update", (data) => {
       console.log("LoadingLobby: Received lobby-update:", data);
-      setLobbyStatus(data.msg || data.action);
+      setLobbyStatus(data.msg || data.action || "LOBBY UPDATE");
       if (data.players) {
-        setPlayers(data.players);
+        // Example placeholder logic for isReady/isLoading
+        const updatedPlayers = data.players.map((p) => ({
+          ...p,
+          isReady: false,
+          isLoading: false,
+        }));
+        setPlayers(updatedPlayers);
       }
     });
 
@@ -37,7 +69,35 @@ export default function LoadingLobby() {
     };
   }, [navigate]);
 
-  const handleLeaveLobby = () => {
+  // Circle layout positioning
+  function calculatePosition(index, total, radius) {
+    // We'll place them around 360° from a starting angle of 270° (top)
+    const angleDeg = 270 + (360 / total) * index;
+    const angleRad = (angleDeg * Math.PI) / 180;
+    return {
+      left: `${50 + radius * Math.cos(angleRad)}%`,
+      top: `${50 + radius * Math.sin(angleRad)}%`,
+    };
+  }
+
+  const isReadyText = isAllPlayersReady ? "PLAYERS READY" : "PLAYERS LOADING...";
+
+  // If no real players from server yet, fallback placeholders
+  const actualPlayers = players.length > 0 ? players : [
+    { user_id: "1", username: "Placeholder1", isReady: false, isLoading: true },
+    { user_id: "2", username: "Placeholder2", isReady: false, isLoading: true },
+    { user_id: "3", username: "Placeholder3", isReady: false, isLoading: true },
+    { user_id: "4", username: "Placeholder4", isReady: false, isLoading: true },
+    { user_id: "5", username: "Placeholder5", isReady: false, isLoading: true },
+    { user_id: "6", username: "Placeholder6", isReady: false, isLoading: true },
+  ];
+
+  const positionedPlayers = actualPlayers.map((p, i) => ({
+    ...p,
+    position: calculatePosition(i, actualPlayers.length, 35),
+  }));
+
+  function handleLeaveLobby() {
     const lobbyId = localStorage.getItem("lobbyId");
     const myUserId = localStorage.getItem("myUserId");
     if (!lobbyId || !myUserId) {
@@ -52,39 +112,64 @@ export default function LoadingLobby() {
       .then((res) => res.json())
       .then(() => navigate("/lobbies"))
       .catch((err) => console.error("Error leaving lobby:", err));
-  };
-
-  const lobbyId = localStorage.getItem("lobbyId") || "";
-  const myUserId = localStorage.getItem("myUserId") || "Guest";
+  }
 
   return (
     <div className="relative w-full min-h-screen bg-gray-100">
       {/* NAVBAR */}
       <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
-        <div className="flex items-center space-x-4">
-          <span className="text-xl font-bold">Time: 55</span>
-          <img
-            alt="Profile"
-            className="w-10 h-10 rounded-full border-2 border-gray-500"
-          />
-        </div>
+        <img
+          src="/api/placeholder/40/40"
+          alt="Profile"
+          className="w-10 h-10 rounded-full border-2 border-gray-500"
+        />
       </header>
 
-      {/* MAIN CONTENT */}
-      <main className="pt-6 px-6 pr-[350px]">
-        <h1 className="text-2xl font-bold mb-4">Lobby Status: {lobbyStatus}</h1>
-        <ul className="list-disc list-inside mb-4">
-          {players.map((player) => (
-            <li key={player.user_id} className="pl-1">
-              {player.username}
-            </li>
+      {/* MAIN CONTENT: circle layout => pad right so the pinned chat is not overlapped */}
+      <main className="pt-6 px-6 pr-[350px] flex flex-col items-center justify-center">
+        <h2 className="text-2xl font-bold mb-4">{isReadyText}</h2>
+
+        <div className="relative w-full aspect-square max-w-2xl">
+          {/* Center text / button */}
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
+            <h3 className="text-xl font-bold mb-2">GAME LOBBY #1</h3>
+            {isAllPlayersReady ? (
+              <button className="bg-red-500 text-white px-6 py-2 rounded-md font-medium">
+                READY
+              </button>
+            ) : (
+              <div className="bg-gray-400 text-white px-6 py-2 rounded-md font-medium flex items-center space-x-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Loading</span>
+              </div>
+            )}
+
+            {/* LEAVE LOBBY BUTTON BELOW THE CENTER LOADING/READY BUTTON */}
+            <div className="mt-4">
+              <button
+                onClick={handleLeaveLobby}
+                className="bg-gray-700 text-white px-4 py-2 rounded-md"
+              >
+                Leave Lobby
+              </button>
+            </div>
+          </div>
+
+          {/* Player Cards in a circle */}
+          {positionedPlayers.map((player, idx) => (
+            <PlayerCard
+              key={player.user_id || idx}
+              username={player.username}
+              isLoading={player.isLoading}
+              isReady={player.isReady}
+              style={player.position}
+            />
           ))}
-        </ul>
-        <Button onClick={handleLeaveLobby}>Leave Lobby</Button>
+        </div>
       </main>
 
-      {/* PINNED CHAT: 350px on right, below navbar => top=64px if navbar=64px tall */}
+      {/* PINNED CHAT on the right, below navbar => top=64 if your navbar is ~64px high */}
       <div
         className="fixed bg-[#1f2430] border-l border-gray-700"
         style={{
@@ -95,8 +180,8 @@ export default function LoadingLobby() {
         }}
       >
         <Chat
-          lobbyId={lobbyId}
-          userId={myUserId}
+          lobbyId={localStorage.getItem("lobbyId") || ""}
+          userId={localStorage.getItem("myUserId") || "Guest"}
           players={players}
           onLeaveLobby={handleLeaveLobby}
         />

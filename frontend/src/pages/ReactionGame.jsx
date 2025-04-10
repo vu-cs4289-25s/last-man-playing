@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-// import axios from "axios"
+import { socket } from "../lib/socket";
 
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -16,6 +16,7 @@ export default function ReactionGame() {
 
   const [roundsCompleted, setRoundsCompleted] = useState(0); // need 10 successes
   const [strikes, setStrikes] = useState(0);                 // 3 => out
+  const [hasSucceededThisCycle, setHasSucceededThisCycle] = useState(false);
 
   const [isHolding, setIsHolding] = useState(false);  // if user is physically pressing
   const [isHovering, setIsHovering] = useState(false);
@@ -26,8 +27,9 @@ export default function ReactionGame() {
 
   // timestamp of last color flip
   const lastColorSwitchRef = useRef(null);
-
-  const [hasSucceededThisCycle, setHasSucceededThisCycle] = useState(false);
+  const lobbyId = localStorage.getItem("lobbyId"); // || ""
+  const userId = localStorage.getItem("myUserId"); // || "Guest"
+ 
 
   // pregame
   useEffect(() => {
@@ -86,6 +88,29 @@ export default function ReactionGame() {
     return () => clearInterval(timerId);
   }, [gamePhase, colorCycleTimeLeft, strikes, roundsCompleted])
 
+  useEffect(() => {
+    socket.on("reaction-progress", (data) => {
+      console.log("Reaction progress =>", data);
+      // maybe set state like setOthersDone(data.doneCount)
+    });
+  
+    socket.on("reaction-all-done", (payload) => {
+      console.log("All done =>", payload);
+      // show final ranking or do countdown
+    });
+  
+    socket.on("reaction-go-leaderboard", () => {
+      // e.g. navigate("/leaderboard");
+    });
+  
+    return () => {
+      socket.off("reaction-progress");
+      socket.off("reaction-all-done");
+      socket.off("reaction-go-leaderboard");
+    };
+  }, []);
+  
+
   function handleEndOfColorCycle(){
      // If the user has not done the correct action by now, that’s a fail
      setHasSucceededThisCycle(false);
@@ -108,19 +133,6 @@ export default function ReactionGame() {
      setColorCycleTimeLeft(duration);
      lastColorSwitchRef.current = Date.now();
   }
-
-  // // flip color when the cycle ends
-  // function flipColor() {
-  //   // Reset hasSucceededThisCycle so user can do 1 success in new color
-  //   setHasSucceededThisCycle(false);
-
-  //   const newColor = color === "green" ? "red" : "green";
-  //   setColor(newColor);
-
-  //   const duration = randomInt(5, 11);
-  //   setColorCycleTimeLeft(duration);
-  //   lastColorSwitchRef.current = Date.now();
-  // }
 
   function addStrike() {
     setStrikes((prev) => {
@@ -150,7 +162,20 @@ export default function ReactionGame() {
         `Congratulations! You completed 10 color changes.\n` +
         `Average Reaction Time: ${avgSec} seconds.`
       );
-    };
+    }
+
+    const sum = reactionTimes.reduce((acc, val) => acc + val, 0);
+    const avgMs = reactionTimes.length > 0 ? sum / reactionTimes.length : 999999;
+    const avgSec = parseFloat((avgMs / 1000).toFixed(3));
+
+    const isOut = !success;
+    socket.emit("reaction-finished", {
+      lobbyId,
+      userId,
+      isOut,
+      totalTimeSec: parseFloat(totalTimeSec),
+      avgReactionSec: avgSec,
+    });
   }
 
   function handleMouseDownInGame() {
@@ -207,7 +232,7 @@ export default function ReactionGame() {
   const normalRed   = "#FF0000"
   const darkRed     = "#AA0000"
 
-  // "Wait" means user is pressing => darker color
+  // "Wait" means user is pressing => darkaer color
   let buttonBgColor
   if (color === "green") {
     buttonBgColor = isHolding ? darkGreen : normalGreen
@@ -219,11 +244,16 @@ export default function ReactionGame() {
     return (
       <div className="min-h-screen flex flex-col bg-gray-100">
         {/* Nav */}
-        <header className="w-full bg-gray-300 py-4 px-6 flex justify-center">
-          <h1 className="text-2xl font-bold tracking-wide text-center">
-            LAST MAN PLAYING
-          </h1>
-        </header>
+        <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
+        <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
+        <div className="flex items-center space-x-4">
+          <span className="text-xl font-bold"></span>
+          <img
+            alt="Profile"
+            className="w-10 h-10 rounded-full border-2 border-gray-500"
+          />
+        </div>
+      </header>
 
         <main className="flex flex-col items-center justify-center flex-1 p-4">
           <h2 className="text-3xl font-bold mb-4">RED LIGHT GREEN LIGHT</h2>
@@ -267,11 +297,16 @@ export default function ReactionGame() {
   if (gamePhase === "done") {
     return (
       <div className="min-h-screen flex flex-col bg-gray-100">
-        <header className="w-full bg-gray-300 py-4 px-6 flex justify-center">
-          <h1 className="text-2xl font-bold tracking-wide text-center">
-            LAST MAN PLAYING
-          </h1>
-        </header>
+        <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
+        <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
+        <div className="flex items-center space-x-4">
+          <span className="text-xl font-bold"></span>
+          <img
+            alt="Profile"
+            className="w-10 h-10 rounded-full border-2 border-gray-500"
+          />
+        </div>
+      </header>
 
         <main className="flex flex-col items-center justify-center flex-1 p-4">
           <h2 className="text-3xl font-bold mb-2">RED LIGHT GREEN LIGHT</h2>
@@ -284,10 +319,15 @@ export default function ReactionGame() {
   // IN-GAME
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
-      <header className="w-full bg-gray-300 py-4 px-6 flex justify-center">
-        <h1 className="text-2xl font-bold tracking-wide text-center">
-          LAST MAN PLAYING
-        </h1>
+      <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
+        <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
+        <div className="flex items-center space-x-4">
+          <span className="text-xl font-bold"></span>
+          <img
+            alt="Profile"
+            className="w-10 h-10 rounded-full border-2 border-gray-500"
+          />
+        </div>
       </header>
 
       <main className="flex flex-col items-center justify-center flex-1 p-4">
@@ -341,3 +381,5 @@ export default function ReactionGame() {
     </div>
   )
 }
+
+// IT WORKS!!

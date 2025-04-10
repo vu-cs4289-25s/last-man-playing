@@ -1,3 +1,6 @@
+const { compareSync } = require("bcrypt");
+const { UUID } = require("sequelize/lib/data-types");
+
 /************************************************
  * File: backend/socket.js
  ************************************************/
@@ -5,6 +8,7 @@ let io;
 
 // In-memory object for RPS
 const rpsMoves = {};
+const reactionResults = {};
 
 function computeRPSWinner(userMove, opponentMove) {
   if (userMove === opponentMove) return "tie";
@@ -33,8 +37,8 @@ function init(server) {
 
     // Join-lobby
     socket.on("join-lobby", ({ lobbyId }) => {
-      console.log(`Socket ${socket.id} joined lobby-${lobbyId}`);
       socket.join(`lobby-${lobbyId}`);
+      console.log(`Socket ${socket.id} joined lobby-${lobbyId}`);
       // If you want, broadcast a 'lobby-update' to that room
       io.to(`lobby-${lobbyId}`).emit("lobby-update", {
         msg: `Socket ${socket.id} joined lobby-${lobbyId}`,
@@ -43,8 +47,8 @@ function init(server) {
 
     // Leave-lobby
     socket.on("leave-lobby", ({ lobbyId }) => {
-      console.log(`Socket ${socket.id} left lobby-${lobbyId}`);
       socket.leave(`lobby-${lobbyId}`);
+      console.log(`Socket ${socket.id} left lobby-${lobbyId}`);
       // If you want, broadcast a 'lobby-update' to that room
       io.to(`lobby-${lobbyId}`).emit("lobby-update", {
         msg: `Socket ${socket.id} left lobby-${lobbyId}`,
@@ -55,6 +59,61 @@ function init(server) {
     socket.on("chat-message", ({ lobbyId, userId, text }) => {
       console.log(`User ${userId} in lobby-${lobbyId} says: ${text}`);
       io.to(`lobby-${lobbyId}`).emit("chat-message", { userId, text });
+    });
+
+    // ReactionGame finish
+    socket.on("reaction-finished", (data) => {
+      const { lobbyId, userId, isOut, totalTimeSec, avgReactionSec } = data;
+      console.log('User ${userId} done with ReactionGame in lobby-${lobbyId}', data);
+      if (!reactionResults[lobbyId]) {
+        reactionResults[lobbyId] = {};
+      }
+      reactionResults[lobbyId][userId] = {
+        isOut,
+        totalTimeSec, 
+        avgReactionSec,
+      };
+
+      const totalPlayers = 6; //CHANGE???
+      const doneCount = Object.keys(reactionResults[lobbyId]).length;
+
+      io.to(`lobby-${lobbyId}`).emit("reaction-progress", {
+        doneCount,
+        totalPlayers,
+      });
+
+      if (doneCount >= totalPlayers) {
+        const resultsArr = Object.entries(reactionResults[lobbyId]).map(([uId, info]) => ({
+          userId: uId,
+          ...info
+        }));
+
+        const successes = resultsArr.filter(r => !r.isOut);
+        const fails = resultsArr.filter(r => r.isOut);
+
+        successes.sort((a,b) => a.avgReactionSec - b.avgReactionSec);
+        fails.sort((a, b) => b.totalTimeSec - a.totalTimeSec);
+
+        const finalRanking = [...successes, ...fails];
+
+        let points = 100;
+        const decr = 10;
+        finalRanking.forEach((p) => {
+          p.pointsAwarded = points > 0 ? points : 0;
+          points -= decr;
+        });
+
+        io.to(`lobby-${lobbyId}`).emit("reaction-all-done", {
+          finalRanking,
+          message: "All players done, game over. 5 second countdown to leaderboard..."
+        });
+
+        setTimeout(() => {
+          io.to(`lobby-${lobbyId}`).emit("reaction-go-leaderboard");
+        }, 5000);
+  
+        // delete reactionResults[lobbyId];
+      }
     });
 
     // RPS moves
