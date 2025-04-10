@@ -85,25 +85,30 @@ import Header from "../components/ui/header";
 import { useUser } from "../context/UserContext";
 
 export default function LoadingLobby() {
-  const { user } = useUser(); // Get user from context
+  const { user } = useUser();
   const [players, setPlayers] = useState([]);
   const [lobbyStatus, setLobbyStatus] = useState("");
-  const [creatorId, setCreatorId] = useState(null); // Track creator of the lobby
+  const [creatorId, setCreatorId] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!socket.connected) {
+      socket.connect();
+    }
+
     const lobbyId = localStorage.getItem("lobbyId");
     const myUserId = localStorage.getItem("myUserId");
+
     if (!lobbyId || !myUserId) {
       console.error("No lobbyId or myUserId found in localStorage");
       return;
     }
 
-    // Emit event to join the lobby room if not already joined
+    // Join the lobby
     socket.emit("join-lobby", {
       lobbyId,
       userId: myUserId,
-      username: user?.username,
+      username: user?.username || `Player ${myUserId.slice(0, 4)}`,
       profilePic: user?.profilePic,
     });
 
@@ -111,20 +116,25 @@ export default function LoadingLobby() {
     socket.on("lobby-update", (data) => {
       console.log("Received lobby-update:", data);
 
-      // Ensure the event data contains the players and replace the list if it's new
-      if (data && data.players) {
-        console.log("Players in the lobby:", data.players); // Log players data
-
-        // Set the new list of players (replace the existing list to avoid duplicates)
+      if (data.players) {
         setPlayers(data.players);
-        setCreatorId(data.creatorId); // Update the creatorId from the update
-        setLobbyStatus(data.action); // Update the status of the lobby
-      } else {
-        console.error("No players found in lobby update:", data);
+      }
+      if (data.creatorId) {
+        console.log("Setting creator ID:", data.creatorId);
+        setCreatorId(data.creatorId);
+      }
+      if (data.action) {
+        setLobbyStatus(data.action);
       }
     });
 
-    // Listen for a lobby closed event
+    // Listen for game start
+    socket.on("game-started", (data) => {
+      console.log("Game started, redirecting to MathBlitz");
+      navigate("/mathblitz");
+    });
+
+    // Listen for lobby closed
     socket.on("lobby-closed", (data) => {
       alert("Lobby closed: " + data.message);
       navigate("/lobbies");
@@ -132,9 +142,17 @@ export default function LoadingLobby() {
 
     return () => {
       socket.off("lobby-update");
+      socket.off("game-started");
       socket.off("lobby-closed");
     };
   }, [user, navigate]);
+
+  // Debug log for creator status
+  useEffect(() => {
+    console.log("Current user ID:", user?.user_id);
+    console.log("Creator ID:", creatorId);
+    console.log("Is creator:", user?.user_id === creatorId);
+  }, [user, creatorId]);
 
   // Handle leaving the lobby
   const handleLeaveLobby = () => {
@@ -157,51 +175,50 @@ export default function LoadingLobby() {
       .catch((err) => console.error("Error leaving lobby:", err));
   };
 
-  // Handle starting the game (only for the creator)
-  const handleStartGame = () => {
-    const lobbyId = localStorage.getItem("lobbyId");
-    if (!lobbyId) {
-      alert("No lobby found.");
-      return;
-    }
-
-    // Emit event to start the game
-    socket.emit("start-game", { lobbyId });
-    navigate("/game"); // Navigate to the game page
-  };
-
   return (
     <div>
       <Header />
-      <h1>Lobby Status: {lobbyStatus}</h1>
-      <h2>Players in Lobby:</h2>
-      {players.length === 0 ? (
-        <p>No players yet. Waiting for others to join...</p>
-      ) : (
-        <ul>
-          {players.map((player) => (
-            <li key={player.user_id}>
-              {/* Fallback for image if player does not have a profile picture */}
-              <img
-                src={player.profilePic || "https://placekitten.com/40/40"}
-                alt={player.username}
-                style={{ width: "40px", height: "40px", borderRadius: "50%" }}
-              />
-              {player.username}
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-4">Lobby Status: {lobbyStatus}</h1>
+        <h2 className="text-xl mb-4">Players in Lobby:</h2>
+        {players.length === 0 ? (
+          <p>No players yet. Waiting for others to join...</p>
+        ) : (
+          <ul className="space-y-2">
+            {players.map((player) => (
+              <li key={player.userId} className="flex items-center space-x-2">
+                <img
+                  src={player.profilePic || "https://placekitten.com/40/40"}
+                  alt={player.username}
+                  className="w-10 h-10 rounded-full"
+                />
+                <span>{player.username}</span>
+                {player.userId === creatorId && (
+                  <span className="text-sm text-blue-500">(Creator)</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
 
-      {user && creatorId === user.user_id && players.length > 1 && (
-        <Button onClick={handleStartGame} className="mt-4">
-          Start Game
+        {/* Show start button only for creator and when there are at least 2 players */}
+        {user && user.user_id === creatorId && players.length >= 2 && (
+          <Button
+            onClick={() => {
+              const lobbyId = localStorage.getItem("lobbyId");
+              socket.emit("start-game", { lobbyId });
+              navigate("/mathblitz");
+            }}
+            className="mt-4"
+          >
+            Start Game
+          </Button>
+        )}
+
+        <Button onClick={handleLeaveLobby} className="mt-4 ml-2">
+          Leave Lobby
         </Button>
-      )}
-
-      <Button onClick={handleLeaveLobby} className="mt-4">
-        Leave Lobby
-      </Button>
+      </div>
     </div>
   );
 }
