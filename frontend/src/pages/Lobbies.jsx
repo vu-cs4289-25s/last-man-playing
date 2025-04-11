@@ -83,11 +83,7 @@ export default function Lobbies() {
           result.message === "Joined lobby successfully" ||
           result.message === "Already in lobby"
         ) {
-          // Emit join-lobby event to join the room in Socket.IO
-          socket.emit("join-lobby", { lobbyId });
-          // Save the current lobby ID in localStorage
           localStorage.setItem("lobbyId", lobbyId);
-          // Navigate to the loading or game page
           navigate("/loadinglobby");
         } else {
           alert(result.message || "Failed to join lobby");

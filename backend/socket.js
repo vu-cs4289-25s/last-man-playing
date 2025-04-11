@@ -56,10 +56,18 @@ function init(server) {
     });
 
     // Chat messages
-    socket.on("chat-message", ({ lobbyId, userId, text }) => {
-      console.log(`User ${userId} in lobby-${lobbyId} says: ${text}`);
-      io.to(`lobby-${lobbyId}`).emit("chat-message", { userId, text });
+    socket.on("chat-message", (data) => {
+      console.log("chat-message received:", data);  // log the full incoming payload
+      const { lobbyId, username, text } = data;
+    
+      console.log(`User ${username} in lobby-${lobbyId} says: ${text}`);
+    
+      io.to(`lobby-${lobbyId}`).emit("chat-message", {
+        username,
+        text,
+      });
     });
+    
 
     // ReactionGame finish
     socket.on("reaction-finished", (data) => {

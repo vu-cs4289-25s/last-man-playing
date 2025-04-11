@@ -1,125 +1,148 @@
-// File: frontend/src/pages/RockPaperScissors.jsx
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "../components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
+import { Progress } from "../components/ui/progress";
+import { Label } from "../components/ui/label";
 import { socket } from "../lib/socket";
 import { useNavigate } from "react-router-dom";
 
+const TOTAL_ROUNDS = 3;
+const GAME_TIMER   = 10;                      // ⬅️ 10‑second global clock
+const MOVES = ["rock", "paper", "scissors"];
+const EMOJI = { rock:"✊", paper:"✋", scissors:"✌️" };
+
 export default function RockPaperScissors() {
-  const navigate = useNavigate();
-  // We’ll track user’s ID and the lobby ID
-  const [myUserId, setMyUserId] = useState("");
-  const [lobbyId, setLobbyId] = useState("");
+  const navigate  = useNavigate();
+  const myUserId  = localStorage.getItem("myUserId")        || "Guest";
+  const lobbyId   = localStorage.getItem("lobbyId")         || "";
+  const leaderId  = localStorage.getItem("lobbyLeaderId")   || "";
+  const gameId    = localStorage.getItem("gameId");
+  const roundId   = localStorage.getItem("roundId");
 
-  // We track the last round’s moves and winner
-  const [player1Id, setPlayer1Id] = useState(null);
-  const [player1Move, setPlayer1Move] = useState(null);
-  const [player2Id, setPlayer2Id] = useState(null);
-  const [player2Move, setPlayer2Move] = useState(null);
-  const [roundWinner, setRoundWinner] = useState(null);
+  /* ───────────── state ───────────── */
+  const [round, setRound]       = useState(1);
+  const [userMove, setUserMove] = useState(null);
+  const [cpuMove,  setCpuMove]  = useState(null);
+  const [result,   setResult]   = useState(null);   // win | lose | tie
+  const [wins, setWins] = useState(0);
+  const [ties, setTies] = useState(0);
 
-  // Move emojis
-  const moveEmoji = {
-    rock: "✊",
-    paper: "✋",
-    scissors: "✌️",
-  };
+  const [timeLeft, setTimeLeft]   = useState(GAME_TIMER);
+  const [finished, setFinished]   = useState(false);
 
+  /* ───────────── socket setup ───────────── */
   useEffect(() => {
-    // Grab stored user/lobby from localStorage
-    const storedUserId = localStorage.getItem("myUserId");
-    const storedLobbyId = localStorage.getItem("lobbyId");
+    lobbyId && socket.emit("join-lobby", { lobbyId });
+    socket.on("round-finalized", () => navigate("/leaderboard"));
+    return () => socket.off("round-finalized");
+  }, [lobbyId, navigate]);
 
-    if (!storedUserId || !storedLobbyId) {
-      alert("No user or lobby found. Returning to Lobbies.");
-      navigate("/lobbies");
+  /* ───────────── 10‑sec countdown ───────────── */
+  useEffect(() => {
+    if (timeLeft <= 0) {
+      if (!finished) finishGame();            // auto‑finish
       return;
     }
-    setMyUserId(storedUserId);
-    setLobbyId(storedLobbyId);
+    const id = setInterval(() => setTimeLeft(t => t - 1), 1000);
+    return () => clearInterval(id);
+  }, [timeLeft, finished]);
 
-    // Listen for rps-result from the server
-    socket.on("rps-result", (data) => {
-      // e.g. {player1Id, player1Move, player2Id, player2Move, winner}
-      setPlayer1Id(data.player1Id);
-      setPlayer1Move(data.player1Move);
-      setPlayer2Id(data.player2Id);
-      setPlayer2Move(data.player2Move);
-      setRoundWinner(data.winner);
-    });
+  /* ───────────── gameplay ───────────── */
+  const randCpu = () => MOVES[Math.floor(Math.random()*3)];
+  const judge   = (u,c) => u===c?"tie":
+    (u==="rock"&&c==="scissors")||(u==="paper"&&c==="rock")||(u==="scissors"&&c==="paper")
+      ?"win":"lose";
 
-    return () => {
-      socket.off("rps-result");
-    };
-  }, [navigate]);
+  const play = move => {
+    if (finished || userMove) return;         // ignore while showing result
+    const cpu = randCpu();
+    const res = judge(move,cpu);
 
-  const handleChoice = (move) => {
-    if (!lobbyId || !myUserId) return;
-    // Send my move to the server
-    socket.emit("rps-move", {
-      lobbyId,
-      userId: myUserId,
-      move, // "rock", "paper", or "scissors"
-    });
+    setUserMove(move); setCpuMove(cpu); setResult(res);
+    if (res==="win") setWins(w=>w+1);
+    if (res==="tie") setTies(t=>t+1);
+
+    setTimeout(() => {
+      if (round < TOTAL_ROUNDS) {
+        setRound(r=>r+1);
+        setUserMove(null); setCpuMove(null); setResult(null);
+      } else {
+        finishGame();
+      }
+    }, 1200);
   };
 
-  // Helper to display the winner in text form
-  const renderWinner = () => {
-    if (!roundWinner) return null;
-    if (roundWinner === "tie") return <p className="text-blue-600 font-bold">It’s a tie!</p>;
-    if (roundWinner === myUserId) {
-      return <p className="text-green-600 font-bold">You won!</p>;
-    } else {
-      return <p className="text-red-600 font-bold">{roundWinner} won!</p>;
+  /* ───────────── finish / scoring ───────────── */
+  const finishGame = async () => {
+    if (finished) return;
+    setFinished(true);
+
+    const score = wins*100 + ties*50;
+
+    try {
+      await fetch(`/api/games/${gameId}/round/${roundId}/submitScore`, {
+        method:"POST", headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({ user_id:myUserId, score })
+      });
+
+      if (myUserId === leaderId) {
+        await fetch(`/api/games/${gameId}/round/${roundId}/finalize`, {
+          method:"POST", headers:{ "Content-Type":"application/json" },
+          body:JSON.stringify({ user_id:myUserId })
+        });
+        navigate("/leaderboard");             // leader navigates immediately
+      }
+      /* non‑leaders wait for socket event */
+    } catch (e) {
+      console.error("RPS submit/finalize error:", e);
+      alert("Could not submit RPS score, see console.");
     }
   };
 
-  // If we know the other player's ID, show them
-  const otherPlayerId =
-    player1Id === myUserId ? player2Id : player1Id;
+  const progress = ((GAME_TIMER - timeLeft) / GAME_TIMER) * 100;
 
+  /* ───────────── UI ───────────── */
   return (
-    <div className="flex flex-col items-center justify-start min-h-screen w-full bg-gray-100">
-      {/* Header */}
-      <header className="w-full bg-gray-300 py-4 px-6 flex justify-center">
-        <h1 className="text-2xl font-bold tracking-wide text-center">
-          LAST MAN PLAYING
-        </h1>
+    <div className="flex flex-col items-center min-h-screen bg-gray-100">
+      <header className="w-full bg-gray-300 py-4 px-6 text-center">
+        <h1 className="text-2xl font-bold">LAST MAN PLAYING</h1>
       </header>
 
-      {/* Main Game Container */}
       <main className="flex-1 flex flex-col items-center py-6 w-full max-w-4xl">
         <Card className="w-full mb-6 p-4 shadow-lg">
           <CardHeader>
             <CardTitle className="text-center text-2xl font-bold">
-              Rock-Paper-Scissors (Multiplayer)
+              Rock‑Paper‑Scissors vs John Doe
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-center mb-4">
-              <p>Your user ID: {myUserId}</p>
-              <p>Opponent user ID: {otherPlayerId || "???"}</p>
-            </div>
 
-            {/* Last Round Moves */}
-            {(player1Move || player2Move) && (
-              <div className="text-center mb-4">
-                <p>
-                  <strong>{player1Id}</strong> chose{" "}
-                  {player1Move ? moveEmoji[player1Move] : "?"} vs.{" "}
-                  <strong>{player2Id}</strong> chose{" "}
-                  {player2Move ? moveEmoji[player2Move] : "?"}
-                </p>
-                {renderWinner()}
+          <CardContent className="text-center">
+            <p className="mb-2">Round {round} / {TOTAL_ROUNDS}</p>
+
+            {userMove && (
+              <p className="mb-4">
+                You {EMOJI[userMove]} vs John Doe {EMOJI[cpuMove]} —&nbsp;
+                {result==="win"?  <span className="text-green-600">Win!</span> :
+                 result==="lose"? <span className="text-red-600">Lose!</span> :
+                                  <span className="text-blue-600">Tie!</span>}
+              </p>
+            )}
+
+            {!finished && !userMove && (
+              <div className="flex justify-center gap-4 mb-4">
+                {MOVES.map(m=>(
+                  <Button key={m} onClick={()=>play(m)}>
+                    {EMOJI[m]} {m}
+                  </Button>
+                ))}
               </div>
             )}
 
-            {/* Move Buttons */}
-            <div className="flex flex-row justify-center space-x-4 mb-4">
-              <Button onClick={() => handleChoice("rock")}>✊ Rock</Button>
-              <Button onClick={() => handleChoice("paper")}>✋ Paper</Button>
-              <Button onClick={() => handleChoice("scissors")}>✌️ Scissors</Button>
-            </div>
+            <p className="mb-4">Wins {wins} Ties {ties}</p>
+
+            {/* 10‑sec progress bar */}
+            <Progress value={progress} className="h-3"/>
+            <Label className="block mt-1">Time Left: {timeLeft}s</Label>
           </CardContent>
         </Card>
       </main>

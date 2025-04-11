@@ -17,6 +17,7 @@ const gameRoutes = require('./routes/games');
 // Import the Socket.IO initializer
 const { init: initSocket } = require('./socket');
 
+// listen for server400 here?
 const app = express();
 const PORT = process.env.PORT || 4000;
 
@@ -42,9 +43,10 @@ const server = http.createServer(app);
 initSocket(server);
 
 // Sync DB, then start listening
-db.sequelize.sync({ alter: true })
-  .then(() => {
+db.sequelize.sync()
+  .then(async () => {
     console.log('Database synchronized! (alter: true)');
+      console.log(JSON.stringify(await db.User.findAll()));
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });

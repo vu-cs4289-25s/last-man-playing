@@ -7,7 +7,8 @@ const {
     startGame,
     submitScore,
     finalizeRound,
-    getGameStatus
+    getGameStatus,
+    getRoundScores
 } = require("../controllers/gamesController");
 
 // POST /games/start
@@ -20,6 +21,9 @@ router.post('/:gameId/round/:roundId/submitScore', submitScore);
 router.post('/:gameId/round/:roundId/finalize', finalizeRound);
 
 // GET /games/:gameId/status
-router.get('/:gameId/submitScore', getGameStatus);
+router.get('/:gameId/getGameStatus', getGameStatus);
+
+// GET /games/:gameId/round/:roundId/scores
+router.get('/round/:roundId/scores', getRoundScores);
 
 module.exports = router;

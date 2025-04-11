@@ -36,6 +36,7 @@ export default function Leaderboard() {
   // const userId = localStorage.getItem("myUserId") || "Guest";
   const username = localStorage.getItem("myUsername") || "guest";
 
+
   return (
     <div className="relative w-full min-h-screen bg-gray-100">
       {/* NAVBAR */}
@@ -95,6 +96,7 @@ export default function Leaderboard() {
           height: "calc(100vh - 72px)",
         }}
       >
+        <Chat lobbyId={lobbyId} username={username} />
         <Chat lobbyId={lobbyId} username={username} />
       </div>
     </div>

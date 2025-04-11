@@ -11,6 +11,7 @@ import CreateLobby from "./pages/CreateLobby";
 import Lobbies from "./pages/Lobbies";
 import ReactionGame from "./pages/ReactionGame";
 import RockPaperScissors from "./pages/RockPaperScissors";
+import TypingGame from './pages/TypingGame.jsx'
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="/lobbies" element={<Lobbies />} />
         <Route path="/reactiongame" element={<ReactionGame />} />
         <Route path="/rps" element={<RockPaperScissors />} />
+        <Route path="/typinggame" element={<TypingGame />} />
       </Routes>
     </Router>
   );

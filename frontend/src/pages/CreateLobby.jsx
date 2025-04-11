@@ -1,7 +1,7 @@
 /************************************************
  * File: frontend/src/pages/CreateLobby.jsx
  ************************************************/
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -58,7 +58,10 @@ export default function CreateLobby() {
       if (res.ok) {
         console.log("Lobby created:", data);
         // Store the new lobby ID for reference if you want
+        let leader = localStorage.getItem("myUserId");
+        localStorage.setItem("lobbyLeaderId", leader)
         localStorage.setItem("lobbyId", data.lobby.lobby_id);
+
         navigate("/loadinglobby");
       } else {
         console.error("Create Lobby error:", data);

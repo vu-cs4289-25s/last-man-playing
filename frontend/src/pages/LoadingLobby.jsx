@@ -1,4 +1,7 @@
-import React, { useEffect, useState } from "react";
+// frontend/src/pages/LoadingLobby.jsx
+// import React, { useEffect, useState } from "react";
+// porque no?
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { socket } from "../lib/socket";
 import Chat from "../components/ui/chat";
@@ -36,10 +39,14 @@ export default function LoadingLobby() {
   const [lobbyStatus, setLobbyStatus] = useState("");
   const [isAllPlayersReady, setIsAllPlayersReady] = useState(false);
 
-  useEffect(() => {
-    const lobbyId = localStorage.getItem("lobbyId");
-    if (!lobbyId) return;
+  const lobbyId = localStorage.getItem("lobbyId") || "";
+  const myUserId = localStorage.getItem("myUserId") || "Guest";
 
+  useEffect(() => {
+    if (!lobbyId) {
+      console.error("No lobbyId found in localStorage");
+      return;
+    }
     console.log("LoadingLobby: join-lobby =>", lobbyId);
     socket.emit("join-lobby", { lobbyId });
 
@@ -63,9 +70,19 @@ export default function LoadingLobby() {
       navigate("/lobbies");
     });
 
+    socket.on("game-started", (data) => {
+      console.log("Socket event: game-started: => ", data);
+
+      localStorage.setItem("gameId", data.gameId);
+      localStorage.setItem("roundId", data.round.round_id);
+
+      navigate("/typinggame");
+    })
+
     return () => {
       socket.off("lobby-update");
       socket.off("lobby-closed");
+      socket.off("game-started");
     };
   }, [navigate]);
 
@@ -114,6 +131,27 @@ export default function LoadingLobby() {
       .catch((err) => console.error("Error leaving lobby:", err));
   }
 
+  async function handleStartGame() {
+    try {
+      const response = await fetch("/api/games/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lobby_id: lobbyId, user_id: myUserId }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.message || "Could not start game.");
+        return;
+      }
+      console.log("Game started! Everyone will be navigated via 'game-started' socket event.");
+
+    } catch (err) {
+      console.error("Error starting game:", err);
+      alert("Error starting game. Check console/logs.");
+    }
+  }
+
   return (
     <div className="relative w-full min-h-screen bg-gray-100">
       {/* NAVBAR */}
@@ -134,16 +172,13 @@ export default function LoadingLobby() {
           {/* Center text / button */}
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
             <h3 className="text-xl font-bold mb-2">GAME LOBBY #1</h3>
-            {isAllPlayersReady ? (
-              <button className="bg-red-500 text-white px-6 py-2 rounded-md font-medium">
-                READY
+
+              <button
+                  className="bg-gray-700 text-white px-6 py-2 rounded-md font-medium mb-2"
+                  onClick={handleStartGame}
+              >
+                Start Game
               </button>
-            ) : (
-              <div className="bg-gray-400 text-white px-6 py-2 rounded-md font-medium flex items-center space-x-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Loading</span>
-              </div>
-            )}
 
             {/* LEAVE LOBBY BUTTON BELOW THE CENTER LOADING/READY BUTTON */}
             <div className="mt-4">
@@ -188,4 +223,4 @@ export default function LoadingLobby() {
       </div>
     </div>
   );
-}
+};

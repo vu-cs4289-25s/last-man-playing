@@ -34,6 +34,7 @@ export default function Chat({
 
   function handleSend() {
     if (!inputVal.trim()) return;
+    console.log("Sending chat:", { lobbyId, username, text: inputVal });
     socket.emit("chat-message", {
       lobbyId,
       username,
