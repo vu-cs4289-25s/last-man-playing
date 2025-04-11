@@ -1,18 +1,19 @@
 const db = require("../models");
 const {v4: uuidv4 } = require("uuid");
-const { io } = require("../index");
+const { getIO }  = require("../socket");
 const ALL_GAMES = require("../config/allGames");
 
 exports.startGame = async (req, res) => {
     try {
-        const userId =  req.user.userId;
-        const { lobby_id } = req.body;
+        const { lobby_id, user_id } = req.body;
+        const io = getIO();
 
         const lobby = await db.Lobby.findOne({where: {lobby_id}});
         if(!lobby) {
             return res.status(404).json({ message: 'Lobby not found' });
         }
-        if (lobby.created_by !== userId){
+
+        if (lobby.created_by !== user_id){
             return res.status(403).json({message: 'Only the leader can start the game'});
         }
 
@@ -63,8 +64,7 @@ exports.startGame = async (req, res) => {
 
 exports.submitScore = async (req, res) => {
     try {
-        const userId = req.user.userId;
-        const {gameId, roundId} = req.params;
+        const {gameId, roundId, user_id} = req.params;
         const { score } = req.body;
 
         // Validate game and round
@@ -85,14 +85,14 @@ exports.submitScore = async (req, res) => {
 
         // Check if an entry exists already
         let roundResult = await db.RoundResults.findOne({
-            where: { round_id: roundId, user_id: userId }
+            where: { round_id: roundId, user_id: user_id }
         });
 
         if (!roundResult) {
             roundResult = await db.RoundResults.create({
                 round_result_id: uuidv4(),
                 round_id: roundId,
-                user_id: userId,
+                user_id: user_id,
                 score,
                 eliminated: false,
             });
@@ -112,8 +112,7 @@ exports.submitScore = async (req, res) => {
 
 exports.finalizeRound = async (req, res) => {
     try {
-        const userId = req.user.userId;
-        const { gameId, roundId } = req.params;
+        const { gameId, roundId, user_id } = req.params;
 
         // Check if user is lobby leader
         const game = await db.Games.findOne({ where: { game_id: gameId }})
@@ -126,7 +125,7 @@ exports.finalizeRound = async (req, res) => {
             return res.status(404).json({ message: 'Lobby not found' });
         }
 
-        if (lobby.created_by !== userId){
+        if (lobby.created_by !== user_id){
             return res.status(403).json({message: 'Only the leader can finalize the game'});
         }
 
