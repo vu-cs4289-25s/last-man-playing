@@ -28,7 +28,13 @@ const Lobby = sequelize.define('Lobby', {
     created_at: {
         type: DataTypes.DATE,
         default_value: DataTypes.NOW,
+    },
+    // add for number of players max?
+    num_players: {
+        type: DataTypes.INTEGER,
+        default_value: 2,
     }
+    
 },{
     tableName: 'lobby',
     timestamps: true

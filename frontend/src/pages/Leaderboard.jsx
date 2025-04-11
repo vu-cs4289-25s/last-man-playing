@@ -33,7 +33,8 @@ export default function Leaderboard() {
   const storeItems = [{ points: 100 }, { points: 250 }, { points: 400 }];
 
   const lobbyId = localStorage.getItem("lobbyId") || "123";
-  const userId = localStorage.getItem("myUserId") || "Guest";
+  // const userId = localStorage.getItem("myUserId") || "Guest";
+  const username = localStorage.getItem("myUsername") || "guest";
 
   return (
     <div className="relative w-full min-h-screen bg-gray-100">
@@ -94,7 +95,7 @@ export default function Leaderboard() {
           height: "calc(100vh - 72px)",
         }}
       >
-        <Chat lobbyId={lobbyId} userId={userId} />
+        <Chat lobbyId={lobbyId} username={username} />
       </div>
     </div>
   );

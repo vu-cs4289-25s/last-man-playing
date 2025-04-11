@@ -29,6 +29,7 @@ exports.loginUser = async (req, res) => {
         return res.json({
             message: 'Login successful',
             token: token,
+            username: existingUser.username, //username?
             user_id: existingUser.user_id
         });
     } catch (error) {
@@ -68,6 +69,8 @@ exports.registerUser = async (req, res) => {
         return res.status(201).json({
             message: 'User registered successfully',
             token: token,
+            // username store
+            username: newUser.username,
             user_id: newUser.user_id
         });
     } catch (error) {

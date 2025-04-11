@@ -37,6 +37,10 @@ const handleSubmit = async (e) => {
     if (data.token && data.user_id) {
       localStorage.setItem("authToken", data.token);
       localStorage.setItem("myUserId", data.user_id);
+      // localStorage.setItem("myUsername", data.username); // store username in local storage 
+    }
+    if (data.username) {
+      localStorage.setItem("myUsername", data.username); // why here umm
     }
     window.location.href = "/lobbies";
   } catch (error) {

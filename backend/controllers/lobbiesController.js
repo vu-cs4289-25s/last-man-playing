@@ -20,7 +20,7 @@ exports.getPublicLobbies = async (req, res) => {
           id: lobby.lobby_id,
           name: lobby.lobby_name,
           playerCount,
-          maxPlayers: 6,
+          maxPlayers: lobby.num_players,
           createdAt: lobby.created_at
         };
       })
@@ -35,7 +35,7 @@ exports.getPublicLobbies = async (req, res) => {
 
 exports.createLobby = async (req, res) => {
   try {
-    const { lobby_name, is_private = false, password = null, user_id } = req.body;
+    const { lobby_name, is_private = false, password = null, user_id, num_players } = req.body;
 
     // Require a logged in user
     if (!user_id) {
@@ -56,7 +56,8 @@ exports.createLobby = async (req, res) => {
     const newLobbyId = uuidv4();
     const newLobby = await db.Lobby.create({
       lobby_id: newLobbyId,
-      lobby_name,
+      lobby_name, //lobby.lobby_name?
+      num_players: num_players,
       is_private: Boolean(is_private),
       password: is_private ? password : null,
       created_by: user_id,

@@ -5,7 +5,7 @@ import { socket } from "../../lib/socket";
 
 export default function Chat({
   lobbyId,
-  userId,
+  username,
   players = [],
   onLeaveLobby = () => {},
 }) {
@@ -35,7 +35,7 @@ export default function Chat({
     if (!inputVal.trim()) return;
     socket.emit("chat-message", {
       lobbyId,
-      userId,
+      username,
       text: inputVal,
     });
     setInputVal("");
@@ -55,7 +55,7 @@ export default function Chat({
           <div className="flex-1 overflow-y-auto mb-2 p-2 text-sm text-white">
             {msgs.map((m, i) => (
               <div key={i} className="my-1">
-                <strong>{m.userId}</strong>: {m.text}
+                <strong>{m.username}</strong>: {m.text}
               </div>
             ))}
           </div>
@@ -83,7 +83,7 @@ export default function Chat({
           <h2 className="text-xl mb-2">Players in Lobby</h2>
           <ul className="space-y-2">
             {players.map((p) => (
-              <li key={p.user_id} className="flex items-center">
+              <li key={p.username} className="flex items-center">
                 <img src="/images/auth/guest.png" alt="pfp" className="w-8 h-8 mr-2" />
                 <div>
                   <div className="font-semibold">{p.username}</div>

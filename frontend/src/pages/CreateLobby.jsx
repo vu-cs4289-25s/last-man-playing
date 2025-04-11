@@ -12,6 +12,10 @@ export default function CreateLobby() {
   const [lobbyName, setLobbyName] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
   const [lobbyPassword, setLobbyPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [maxPlayers, setMaxPlayers] = useState(2); // not setting lobbies to max num players
+  const numRounds = maxPlayers - 1;
+
 
   // On mount, ensure we have a user ID
   useEffect(() => {
@@ -20,22 +24,31 @@ export default function CreateLobby() {
     }
   }, []);
 
+  // On mount, retrieve the saved name
+  useEffect(() => {
+    const savedName = localStorage.getItem("myUsername") || "";
+    setUsername(savedName);
+  }, []);
+
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const userId = localStorage.getItem("myUserId");
     if (!userId) {
       console.error("No userId found. Creating one on the fly.");
-    }
+    } // is this for guest login?
 
     const body = {
-      lobby_name: lobbyName || "My Lobby",
+      lobby_name: lobbyName || `${username}'s Lobby`,
       is_private: isPrivate,
       password: isPrivate ? lobbyPassword : null,
       user_id: userId,
+      num_players: maxPlayers,
     };
 
-    try {
+
+    try { //setMaxPLayers with dropdown 2, 3, 4, 5, 6
       const res = await fetch("/api/lobbies/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -54,6 +67,11 @@ export default function CreateLobby() {
       console.error("Create Lobby Error:", err);
     }
   };
+
+  // make back button
+  const handleBack = () => {
+    navigate("/lobbies");
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
@@ -85,6 +103,27 @@ export default function CreateLobby() {
                 />
               </div>
 
+              <div>
+                <label className="block mb-1 font-medium">Number of Players</label>
+                 <select
+                  value={maxPlayers}
+                  onChange={(e) => setMaxPlayers(Number(e.target.value))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2">
+                  {[2, 3, 4, 5, 6].map((num) => (
+                    <option key={num} value={num}>
+                     {num} players
+                    </option>
+                   ))}
+                </select>
+              </div>
+
+              <div>
+                 <label className="block mb-1 font-medium">Rounds</label>
+                 <div className="bg-gray-100 border border-gray-300 rounded-md px-3 py-2">
+                   {numRounds} rounds
+                 </div>
+               </div>
+
               <div className="flex gap-4 items-center">
                 <label className="font-medium">Public</label>
                 <input
@@ -115,7 +154,14 @@ export default function CreateLobby() {
                 </div>
               )}
 
-              <div className="flex justify-end mt-8">
+            <div className="flex justify-between mt-8">
+                <Button
+                   type="button"
+                   onClick={handleBack}
+                   className="bg-gray-200 text-gray-700 hover:bg-gray-300">
+                   Back
+                </Button>
+
                 <Button type="submit" className="bg-green-600 text-white hover:bg-green-700">
                   Create
                 </Button>
