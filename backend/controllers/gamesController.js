@@ -64,8 +64,8 @@ exports.startGame = async (req, res) => {
 
 exports.submitScore = async (req, res) => {
     try {
-        const {gameId, roundId, user_id} = req.params;
-        const { score } = req.body;
+        const {gameId, roundId} = req.params;
+        const { user_id, score } = req.body;
 
         // Validate game and round
         const game = await db.Games.findOne({ where: { game_id: gameId } });
@@ -112,7 +112,9 @@ exports.submitScore = async (req, res) => {
 
 exports.finalizeRound = async (req, res) => {
     try {
-        const { gameId, roundId, user_id } = req.params;
+        const { gameId, roundId } = req.params;
+        const { user_id } = req.body;
+        const io = getIO();
 
         // Check if user is lobby leader
         const game = await db.Games.findOne({ where: { game_id: gameId }})
@@ -126,7 +128,7 @@ exports.finalizeRound = async (req, res) => {
         }
 
         if (lobby.created_by !== user_id){
-            return res.status(403).json({message: 'Only the leader can finalize the game'});
+            return res.status(403).json({message: 'Only the leader can finalize the game' + user_id});
         }
 
         // Retrieve round and results
@@ -161,11 +163,13 @@ exports.finalizeRound = async (req, res) => {
 
         // Check how many players are still in the game
         const totalParticipants = await db.LobbyParticipants.count({ where: { lobby_id: game.lobby_id } });
+        //console.log(`there are ${totalParticipants} participants`);
 
         const allRoundIds = await db.Rounds.findAll({
             where: { game_id: gameId },
             attributes: ['round_id']
         })
+
         const roundIdList = allRoundIds.map(r => r.round_id);
         const eliminatedResults = await db.RoundResults.findAll({
             where: {
@@ -174,9 +178,12 @@ exports.finalizeRound = async (req, res) => {
             }
         });
 
+
         const eliminatedUserIds = new Set(eliminatedResults.map(r => r.user_id));
+        //console.log(`there are eliminated ${Array.from(eliminatedUserIds).join(", ")} users`);
         const remainingPlayers = totalParticipants - eliminatedUserIds.size;
 
+        //console.log('TTHERE ARE HOW MANY PALYERS LEFT????? THERE ARE: ' + remainingPlayers);
         if (remainingPlayers <= 1) {
             await game.update({ is_active: false });
             return res.status(200).json({
@@ -205,6 +212,12 @@ exports.finalizeRound = async (req, res) => {
             started_at: new Date(),
             round_game_type: chosenMiniGame
         })
+
+        console.log(`made it to the finalize round   + lobby_id ${game.lobby_id}` )
+        io.to(`lobby-${game.lobby_id}`).emit("round-finalized", {
+           message: "Game ended!",
+           gameEnded: true
+        });
 
         return res.status(200).json({
             message: 'Round finalized, next round started',

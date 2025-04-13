@@ -74,7 +74,7 @@ export default function LoadingLobby() {
       console.log("Socket event: game-started: => ", data);
 
       localStorage.setItem("gameId", data.gameId);
-      localStorage.setItem("roundId", data.round.roundId);
+      localStorage.setItem("roundId", data.round.round_id);
 
       navigate("/typinggame");
     })
