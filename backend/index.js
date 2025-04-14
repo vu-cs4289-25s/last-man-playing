@@ -43,11 +43,12 @@ initSocket(server);
 
 // Sync DB, then start listening
 db.sequelize.sync()
-  .then(() => {
-    console.log('Database synchronized! (alter: true)');
-    server.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
+  .then(async () => {
+      console.log('Database synchronized! (alter: true)');
+      console.log(JSON.stringify(await db.User.findAll()));
+      server.listen(PORT, () => {
+          console.log(`Server running on port ${PORT}`);
+      });
   })
   .catch((err) => {
     console.error('Error syncing database', err);

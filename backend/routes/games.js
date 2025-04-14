@@ -24,6 +24,6 @@ router.post('/:gameId/round/:roundId/finalize', finalizeRound);
 router.get('/:gameId/getGameStatus', getGameStatus);
 
 // GET /games/:gameId/round/:roundId/scores
-router.get('/:gameId/round/:roundId/scores', getRoundScores);
+router.get('/round/:roundId/scores', getRoundScores);
 
 module.exports = router;

@@ -186,6 +186,10 @@ exports.finalizeRound = async (req, res) => {
         //console.log('TTHERE ARE HOW MANY PALYERS LEFT????? THERE ARE: ' + remainingPlayers);
         if (remainingPlayers <= 1) {
             await game.update({ is_active: false });
+            io.to(`lobby-${game.lobby_id}`).emit("round-finalized", {
+                message: "Game ended!",
+                gameEnded: true
+            });
             return res.status(200).json({
                 message: 'Game ended',
                 loserId,
@@ -216,7 +220,7 @@ exports.finalizeRound = async (req, res) => {
         console.log(`made it to the finalize round   + lobby_id ${game.lobby_id}` )
         io.to(`lobby-${game.lobby_id}`).emit("round-finalized", {
            message: "Game ended!",
-           gameEnded: true
+           gameEnded: false
         });
 
         return res.status(200).json({
@@ -253,10 +257,10 @@ exports.getGameStatus = async (req, res) => {
 
 exports.getRoundScores = async (req, res) => {
     try {
-        const {gameId, roundId } = req.params;
+        const { roundId } = req.params;
 
         const roundResults = await db.RoundResults.findAll( {
-            where: {round_id: roundId, game_id: gameId },
+            where: {round_id: roundId },
             order: [['score', 'DESC']]}
         );
 
