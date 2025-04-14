@@ -3,7 +3,7 @@ const db = require('../models');
 
 describe('Users Model Tests', () => {
     beforeAll(async () => {
-        await db.sequelize.sync({alter: true});
+        await db.sequelize.sync();
     })
 
     afterEach(async () => {

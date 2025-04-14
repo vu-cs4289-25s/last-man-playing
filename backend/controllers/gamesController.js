@@ -250,3 +250,23 @@ exports.getGameStatus = async (req, res) => {
         return res.status(500).json({ message: 'Internal server error' });
     }
 }
+
+exports.getRoundScores = async (req, res) => {
+    try {
+        const {gameId, roundId } = req.params;
+
+        const roundResults = await db.RoundResults.findAll( {
+            where: {round_id: roundId, game_id: gameId },
+            order: [['score', 'DESC']]}
+        );
+
+        if (!roundResults || roundResults.length === 0) {
+            return res.status(404).json({ message: 'No scores found for this round' });
+        }
+
+        return res.status(200).json({ scores: roundResults});
+    } catch (error) {
+        console.error('Error in getScores:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+}

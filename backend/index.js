@@ -42,7 +42,7 @@ const server = http.createServer(app);
 initSocket(server);
 
 // Sync DB, then start listening
-db.sequelize.sync({ alter: true })
+db.sequelize.sync()
   .then(() => {
     console.log('Database synchronized! (alter: true)');
     server.listen(PORT, () => {
