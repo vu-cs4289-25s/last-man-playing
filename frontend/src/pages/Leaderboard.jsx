@@ -1,8 +1,7 @@
 // frontend/src/pages/Leaderboard.jsx
 
-import React from "react";
+import {useEffect, useState} from "react";
 import { Card, CardContent } from "../components/ui/card";
-import { socket } from "../lib/socket";
 import Chat from "../components/ui/chat";
 
 const StorePurchase = ({ points }) => (
@@ -22,22 +21,47 @@ const PlayerScore = ({ name, score }) => (
 );
 
 export default function Leaderboard() {
-  const players = [
-    { name: "Player 1", score: 750 },
-    { name: "Player 2", score: 650 },
-    { name: "Player 3", score: 500 },
-    { name: "Player 4", score: 450 },
-    { name: "Player 5", score: 400 },
-    { name: "Player 6", score: 350 },
-  ];
-  const storeItems = [{ points: 100 }, { points: 250 }, { points: 400 }];
+    const [players, setPlayers] = useState([]);
+    const lobbyId = localStorage.getItem("lobbyId") || "123";
+    const userId = localStorage.getItem("myUserId") || "Guest";
+    const gameId = localStorage.getItem("gameId");
+    const roundId = localStorage.getItem("roundId");
 
-  const lobbyId = localStorage.getItem("lobbyId") || "123";
-  // const userId = localStorage.getItem("myUserId") || "Guest";
-  const username = localStorage.getItem("myUsername") || "guest";
+    useEffect(() => {
+        if (!gameId || !roundId) {
+            console.warn("No gameId or roundId found, can’t fetch leaderboard");
+            return;
+        }
 
+        fetch(`/api/games/round/${roundId}/scores`)
+            .then((res) => res.json())
+            .then((data) => {
+                console.log(data);
+                const sorted = data.scores.sort((a, b) => b.score - a.score);
+                // lazy way will fix later
+                const playersMap = sorted.map(player => ({
+                    name: player.user_id,
+                    score: player.score,
+                }))
+                setPlayers(playersMap)
+                console.log(playersMap);
+            })
+            .catch((error) => {
+                console.error(`Error fetching scores: ${error}`)
+            })
+    }, [gameId, roundId])
 
-  return (
+    // const players = [
+    //     { name: "Player 1", score: 750 },
+    //     { name: "Player 2", score: 650 },
+    //     { name: "Player 3", score: 500 },
+    //     { name: "Player 4", score: 450 },
+    //     { name: "Player 5", score: 400 },
+    //     { name: "Player 6", score: 350 },
+    // ];
+    const storeItems = [{ points: 100 }, { points: 250 }, { points: 400 }];
+
+    return (
     <div className="relative w-full min-h-screen bg-gray-100">
       {/* NAVBAR */}
       <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
@@ -96,9 +120,8 @@ export default function Leaderboard() {
           height: "calc(100vh - 72px)",
         }}
       >
-        <Chat lobbyId={lobbyId} username={username} />
-        <Chat lobbyId={lobbyId} username={username} />
+        <Chat lobbyId={lobbyId} userId={userId} />
       </div>
     </div>
-  );
+    );
 }
