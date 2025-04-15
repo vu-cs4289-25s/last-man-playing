@@ -5,7 +5,7 @@ import { socket } from "../../lib/socket";
 
 export default function Chat({
   lobbyId,
-  username,
+  username, //
   players = [],
   onLeaveLobby = () => {},
 }) {
@@ -17,6 +17,7 @@ export default function Chat({
     if (!lobbyId) return;
 
     console.log("Chat: join-lobby =>", lobbyId);
+    console.log(username);
     socket.emit("join-lobby", { lobbyId });
 
     socket.on("chat-message", (data) => {
@@ -56,6 +57,7 @@ export default function Chat({
             {msgs.map((m, i) => (
               <div key={i} className="my-1">
                 <strong>{m.username}</strong>: {m.text}
+                {console.log(m.username,i)}
               </div>
             ))}
           </div>

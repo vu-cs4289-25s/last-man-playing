@@ -181,7 +181,7 @@ export default function LoadingLobby() {
       >
         <Chat
           lobbyId={localStorage.getItem("lobbyId") || ""}
-          userId={localStorage.getItem("myUserId") || "Guest"}
+          username={localStorage.getItem("myUsername") || "Guest"}
           players={players}
           onLeaveLobby={handleLeaveLobby}
         />
