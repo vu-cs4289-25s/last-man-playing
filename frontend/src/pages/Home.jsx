@@ -1,10 +1,18 @@
 // frontend/src/pages/Home.jsx
 
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 
 export default function Home() {
   const navigate = useNavigate();
+
+  useEffect(() =>{
+    const myUserId = localStorage.getItem("myUserId");
+    if (myUserId) {
+      navigate('/lobbies')
+    }
+  }, [navigate])
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen w-full bg-gray-100">
