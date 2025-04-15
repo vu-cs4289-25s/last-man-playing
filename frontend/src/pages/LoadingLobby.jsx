@@ -87,7 +87,6 @@ import { useUser } from "../context/UserContext";
 export default function LoadingLobby() {
   const { user } = useUser();
   const [players, setPlayers] = useState([]);
-  const [lobbyStatus, setLobbyStatus] = useState("");
   const [creatorId, setCreatorId] = useState(null);
   const navigate = useNavigate();
 
@@ -105,54 +104,60 @@ export default function LoadingLobby() {
     }
 
     // Join the lobby
+    console.log("Joining lobby with user data:", {
+      lobbyId,
+      userId: myUserId,
+      username: user?.username,
+      profilePic: user?.profilePic,
+    });
+
     socket.emit("join-lobby", {
       lobbyId,
       userId: myUserId,
-      username: user?.username || `Player ${myUserId.slice(0, 4)}`,
+      username: user?.username,
       profilePic: user?.profilePic,
     });
 
     // Listen for lobby updates
     socket.on("lobby-update", (data) => {
-      console.log("Received lobby-update:", data);
-
-      if (data.players) {
-        setPlayers(data.players);
+      console.log("Received lobby update:", data);
+      if (data.players && Array.isArray(data.players)) {
+        // Filter out any duplicate players based on userId
+        const uniquePlayers = data.players.reduce((acc, current) => {
+          const x = acc.find((item) => item.userId === current.userId);
+          if (!x) {
+            return acc.concat([current]);
+          } else {
+            return acc;
+          }
+        }, []);
+        console.log("Setting unique players:", uniquePlayers);
+        setPlayers(uniquePlayers);
       }
       if (data.creatorId) {
-        console.log("Setting creator ID:", data.creatorId);
         setCreatorId(data.creatorId);
-      }
-      if (data.action) {
-        setLobbyStatus(data.action);
       }
     });
 
     // Listen for game start
     socket.on("game-started", (data) => {
-      console.log("Game started, redirecting to MathBlitz");
       navigate("/mathblitz");
-    });
-
-    // Listen for lobby closed
-    socket.on("lobby-closed", (data) => {
-      alert("Lobby closed: " + data.message);
-      navigate("/lobbies");
     });
 
     return () => {
       socket.off("lobby-update");
       socket.off("game-started");
-      socket.off("lobby-closed");
     };
   }, [user, navigate]);
 
-  // Debug log for creator status
-  useEffect(() => {
-    console.log("Current user ID:", user?.user_id);
-    console.log("Creator ID:", creatorId);
-    console.log("Is creator:", user?.user_id === creatorId);
-  }, [user, creatorId]);
+  const handleStartGame = () => {
+    const lobbyId = localStorage.getItem("lobbyId");
+    if (!lobbyId) {
+      console.error("No lobby ID found");
+      return;
+    }
+    socket.emit("start-game", { lobbyId });
+  };
 
   // Handle leaving the lobby
   const handleLeaveLobby = () => {
@@ -179,14 +184,17 @@ export default function LoadingLobby() {
     <div>
       <Header />
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4">Lobby Status: {lobbyStatus}</h1>
+        <h1 className="text-2xl font-bold mb-4">Lobby</h1>
         <h2 className="text-xl mb-4">Players in Lobby:</h2>
         {players.length === 0 ? (
           <p>No players yet. Waiting for others to join...</p>
         ) : (
           <ul className="space-y-2">
             {players.map((player) => (
-              <li key={player.userId} className="flex items-center space-x-2">
+              <li
+                key={player.userId || `player-${Math.random()}`}
+                className="flex items-center space-x-2"
+              >
                 <img
                   src={player.profilePic || "https://placekitten.com/40/40"}
                   alt={player.username}
@@ -203,16 +211,13 @@ export default function LoadingLobby() {
 
         {/* Show start button only for creator and when there are at least 2 players */}
         {user && user.user_id === creatorId && players.length >= 2 && (
-          <Button
-            onClick={() => {
-              const lobbyId = localStorage.getItem("lobbyId");
-              socket.emit("start-game", { lobbyId });
-              navigate("/mathblitz");
-            }}
-            className="mt-4"
-          >
+          <Button onClick={handleStartGame} className="mt-4">
             Start Game
           </Button>
+        )}
+
+        {user && user.user_id !== creatorId && (
+          <p className="mt-4 text-gray-600">Waiting for game to start...</p>
         )}
 
         <Button onClick={handleLeaveLobby} className="mt-4 ml-2">

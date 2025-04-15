@@ -4,7 +4,7 @@
 import { io } from "socket.io-client";
 
 // Make sure this matches your backend server port
-const BACKEND_URL = "http://localhost:3000"; // Change this to match your backend port
+const BACKEND_URL = "http://localhost:4000"; // Change to match backend port
 
 export const socket = io(BACKEND_URL, {
   autoConnect: false,

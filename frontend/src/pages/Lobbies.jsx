@@ -140,7 +140,7 @@ export default function Lobbies() {
             <div className="mb-4 flex gap-2">
               <Button
                 onClick={handleCreateLobby}
-                className="bg-gray-200 text-gray-700 hover:bg-gray-300"
+                className="bg-gray-200 text-blue-700 hover:bg-gray-300"
               >
                 Create Lobby
               </Button>

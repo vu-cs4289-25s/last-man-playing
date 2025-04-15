@@ -12,6 +12,8 @@ const MathBlitz = () => {
   const [gameOver, setGameOver] = useState(false);
   const [timer, setTimer] = useState(10);
   const [gameStarted, setGameStarted] = useState(false);
+  const [isMyTurn, setIsMyTurn] = useState(false);
+  const [previousAnswer, setPreviousAnswer] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,50 +30,88 @@ const MathBlitz = () => {
       return;
     }
 
+    // Listen for game start
     socket.on("game-started", (data) => {
-      console.log("Received game-started event:", data);
-      if (data.players) {
+      console.log("Game started event received:", data);
+      if (data.players && Array.isArray(data.players)) {
         setPlayers(data.players);
+        setCurrentPlayerIndex(data.currentPlayerIndex || 0);
+        setQuestion(data.question || { num1: 0, num2: 0 });
         setGameStarted(true);
-        generateQuestion();
+        setIsMyTurn(
+          data.players[data.currentPlayerIndex || 0]?.userId === myUserId
+        );
         startTimer();
       }
     });
 
-    socket.on("updatePlayers", (updatedPlayers) => {
-      console.log("Received updatePlayers event:", updatedPlayers);
-      setPlayers(updatedPlayers);
+    // Listen for next turn
+    socket.on("next-turn", (data) => {
+      if (data.players && Array.isArray(data.players)) {
+        setPlayers(data.players);
+        setCurrentPlayerIndex(data.currentPlayerIndex || 0);
+        setQuestion(data.question || { num1: 0, num2: 0 });
+        setPreviousAnswer(data.previousAnswer || null);
+        setIsMyTurn(
+          data.players[data.currentPlayerIndex || 0]?.userId === myUserId
+        );
+        setAnswer("");
+        startTimer();
+      }
     });
 
-    socket.on("gameOver", (winner) => {
-      console.log("Received gameOver event:", winner);
-      setGameOver(true);
-      setPlayers(Array.isArray(winner) ? winner : [winner]);
+    // Listen for game over
+    socket.on("game-over", (data) => {
+      console.log("Game over event received:", data);
+      if (data.winner) {
+        setGameOver(true);
+        setPlayers(data.players);
+        // Store the game results in localStorage
+        localStorage.setItem(
+          "gameResults",
+          JSON.stringify({
+            players: data.players,
+            timestamp: new Date().toISOString(),
+          })
+        );
+        // Navigate to leaderboard after a short delay
+        setTimeout(() => {
+          navigate("/leaderboard");
+        }, 3000);
+      }
     });
 
-    socket.on("nextTurn", (nextPlayerIndex) => {
-      console.log("Received nextTurn event:", nextPlayerIndex);
-      setCurrentPlayerIndex(nextPlayerIndex);
-      generateQuestion();
-      startTimer();
+    // Check if we're already in a game
+    socket.emit("check-game-status", { lobbyId });
+
+    socket.on("game-status", (data) => {
+      if (data.gameStarted && data.players && Array.isArray(data.players)) {
+        setGameStarted(true);
+        setPlayers(data.players);
+        setCurrentPlayerIndex(data.currentPlayerIndex || 0);
+        setQuestion(data.question || { num1: 0, num2: 0 });
+        setIsMyTurn(
+          data.players[data.currentPlayerIndex || 0]?.userId === myUserId
+        );
+        startTimer();
+      }
     });
 
     return () => {
       socket.off("game-started");
-      socket.off("updatePlayers");
-      socket.off("gameOver");
-      socket.off("nextTurn");
+      socket.off("next-turn");
+      socket.off("game-over");
+      socket.off("game-status");
     };
   }, [navigate]);
 
   useEffect(() => {
-    if (timer === 0) {
-      handleAnswer();
+    if (timer === 0 && isMyTurn) {
+      handleTimeOut();
     }
   }, [timer]);
 
   const startTimer = () => {
-    console.log("Starting timer");
     setTimer(10);
     const interval = setInterval(() => {
       setTimer((prev) => {
@@ -83,21 +123,16 @@ const MathBlitz = () => {
     }, 1000);
   };
 
-  const generateQuestion = () => {
-    console.log("Generating new question");
-    const num1 = Math.floor(Math.random() * 10) + 1;
-    const num2 = Math.floor(Math.random() * 10) + 1;
-    setQuestion({ num1, num2 });
+  const handleAnswer = () => {
+    if (!isMyTurn) return;
+
+    const lobbyId = localStorage.getItem("lobbyId");
+    socket.emit("submit-answer", { lobbyId, answer });
   };
 
-  const handleAnswer = () => {
-    const correctAnswer = question.num1 * question.num2;
-    if (parseInt(answer) !== correctAnswer) {
-      socket.emit("wrongAnswer", currentPlayerIndex);
-    } else {
-      socket.emit("correctAnswer", currentPlayerIndex);
-    }
-    setAnswer("");
+  const handleTimeOut = () => {
+    const lobbyId = localStorage.getItem("lobbyId");
+    socket.emit("time-out", { lobbyId });
   };
 
   const handleKeyDown = (e) => {
@@ -117,20 +152,18 @@ const MathBlitz = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
+    <div className="flex flex-col items-center justify-start min-h-screen w-full bg-gray-100">
       <Header />
       {!gameStarted ? (
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg text-center">
-          <h1 className="text-3xl font-bold mb-4">Welcome to Math Blitz!</h1>
-          <p className="mb-4">Waiting for game to start...</p>
-          <p className="mb-4">Number of Players: {players.length}</p>
+          <h1 className="text-3xl font-bold mb-4">
+            Waiting for game to start...
+          </h1>
+          <p className="text-gray-600">Players in game: {players.length}</p>
         </div>
       ) : gameOver ? (
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg text-center">
-          <h2 className="text-2xl font-bold">Winner: {players[0].name}</h2>
-          <Button onClick={() => window.location.reload()} className="mt-2">
-            Play Again
-          </Button>
+          <h2 className="text-2xl font-bold">Winner: {players[0]?.username}</h2>
         </div>
       ) : (
         <>
@@ -141,48 +174,66 @@ const MathBlitz = () => {
                 const position = calculatePosition(index, players.length, 40);
                 return (
                   <div
-                    key={player.id}
+                    key={player.userId}
                     style={position}
                     className={`absolute bg-[#0D1117] text-white rounded-md px-4 py-2 flex items-center space-x-2 w-48 transform -translate-x-1/2 -translate-y-1/2`}
                   >
                     <img
-                      src="/api/placeholder/24/24"
+                      src={player.profilePic || "https://placekitten.com/40/40"}
                       alt="Player avatar"
                       className="w-6 h-6 rounded-full"
                     />
                     <span className="font-medium">
-                      {player.name} ({player.lives} lives)
+                      {player.username} ({player.lives} lives)
                     </span>
                   </div>
                 );
               })}
-              <div
-                style={calculatePosition(
-                  currentPlayerIndex,
-                  players.length,
-                  50
-                )}
-                className="absolute bg-white p-4 rounded-lg shadow-lg text-center"
-              >
-                <h2 className="text-xl font-bold">
-                  {question.num1} × {question.num2}?
-                </h2>
-                <input
-                  type="number"
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  className="border p-2 mt-2"
-                />
-                <Button onClick={handleAnswer} className="mt-2">
-                  Submit
-                </Button>
-                <div className="text-sm text-gray-500 mt-2">
-                  Time left: {timer}s
+              {players.length > 0 && (
+                <div
+                  style={calculatePosition(
+                    currentPlayerIndex,
+                    players.length,
+                    50
+                  )}
+                  className="absolute bg-white p-4 rounded-lg shadow-lg text-center"
+                >
+                  <h2 className="text-xl font-bold">
+                    {question?.num1} × {question?.num2}?
+                  </h2>
+                  {isMyTurn ? (
+                    <>
+                      <input
+                        type="number"
+                        value={answer}
+                        onChange={(e) => setAnswer(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        className="border p-2 mt-2"
+                      />
+                      <Button onClick={handleAnswer} className="mt-2">
+                        Submit
+                      </Button>
+                      <div className="text-sm text-gray-500 mt-2">
+                        Time left: {timer}s
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-gray-500 mt-2">
+                      Waiting for {players[currentPlayerIndex]?.username}'s turn
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
           </div>
+          {previousAnswer && (
+            <div className="mt-4 text-center">
+              <p className="text-lg">
+                Previous answer: {previousAnswer.correct ? "Correct" : "Wrong"}{" "}
+                ({previousAnswer.answer})
+              </p>
+            </div>
+          )}
         </>
       )}
     </div>
