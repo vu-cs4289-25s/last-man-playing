@@ -57,10 +57,18 @@ export default function LoadingLobby() {
       return;
     }
 
+    // Join the lobby
+    console.log("Joining lobby with user data:", {
+      lobbyId,
+      userId: myUserId,
+      username: user?.username,
+      profilePic: user?.profilePic,
+    });
+
     socket.emit("join-lobby", {
       lobbyId,
       userId: myUserId,
-      username: user?.username || `Player ${myUserId.slice(0, 4)}`,
+      username: user?.username,
       profilePic: user?.profilePic,
     });
 
@@ -78,7 +86,6 @@ export default function LoadingLobby() {
       if (data.creatorId) {
         setCreatorId(data.creatorId);
       }
-
       setLobbyStatus(data.message || "Lobby updated.");
     });
 
@@ -98,7 +105,6 @@ export default function LoadingLobby() {
       socket.off("lobby-update");
       socket.off("game-started");
       socket.off("lobby-closed");
-      socket.off("game-started");
     };
   }, [navigate, user, lobbyId, myUserId]);
 
@@ -145,53 +151,74 @@ export default function LoadingLobby() {
   return (
     <div className="relative w-full min-h-screen bg-gray-100">
       <Header />
-      <main className="pt-6 px-6 pr-[350px] flex flex-col items-center justify-center">
-        <h2 className="text-2xl font-bold mb-4">{lobbyStatus}</h2>
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-4">Lobby</h1>
+        <h2 className="text-xl mb-4">Players in Lobby:</h2>
+        {players.length === 0 ? (
+          <p>No players yet. Waiting for others to join...</p>
+        ) : (
+          <ul className="space-y-2">
+            {players.map((player) => (
+              <li
+                key={player.userId || `player-${Math.random()}`}
+                className="flex items-center space-x-2"
+              >
+                <img
+                  src={player.profilePic || "https://placekitten.com/40/40"}
+                  alt={player.username}
+                  className="w-10 h-10 rounded-full"
+                />
+                <span>{player.username}</span>
+                {player.userId === creatorId && (
+                  <span className="text-sm text-blue-500">(Creator)</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
 
-        <div className="relative w-full aspect-square max-w-2xl">
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
-            <h3 className="text-xl font-bold mb-2">Game Lobby</h3>
+        {user && user.user_id === creatorId && players.length >= 2 && (
+          <Button onClick={handleStartGame} className="mt-4">
+            Start Game
+          </Button>
+        )}
 
-            {isCurrentUserCreator && players.length >= 2 && (
-              <Button onClick={handleStartGame} className="mb-2">
-                Start Game
-              </Button>
-            )}
+        {user && user.user_id !== creatorId && (
+          <p className="mt-4 text-gray-600">Waiting for game to start...</p>
+        )}
 
-            <div className="mt-4">
-              <Button onClick={handleLeaveLobby}>Leave Lobby</Button>
-            </div>
-          </div>
-
-          {positionedPlayers.map((player, idx) => (
-            <PlayerCard
-              key={player.userId || idx}
-              username={player.username}
-              isLoading={false}
-              isReady={false}
-              style={player.position}
-              profilePic={player.profilePic}
-              isCreator={player.userId === creatorId}
-            />
-          ))}
+        <div className="mt-4">
+          <Button onClick={handleLeaveLobby}>Leave Lobby</Button>
         </div>
-      </main>
 
-      <div
-        className="fixed bg-[#1f2430] border-l border-gray-700"
-        style={{
-          width: "350px",
-          right: 0,
-          top: "72px",
-          height: "calc(100vh - 72px)",
-        }}
-      >
-        <Chat
-          lobbyId={lobbyId}
-          username={localStorage.getItem("myUsername") || "Guest"}
-          players={players}
-          onLeaveLobby={handleLeaveLobby}
-        />
+        {positionedPlayers.map((player, idx) => (
+          <PlayerCard
+            key={player.userId || idx}
+            username={player.username}
+            isLoading={false}
+            isReady={false}
+            style={player.position}
+            profilePic={player.profilePic}
+            isCreator={player.userId === creatorId}
+          />
+        ))}
+
+        <div
+          className="fixed bg-[#1f2430] border-l border-gray-700"
+          style={{
+            width: "350px",
+            right: 0,
+            top: "72px",
+            height: "calc(100vh - 72px)",
+          }}
+        >
+          <Chat
+            lobbyId={lobbyId}
+            username={localStorage.getItem("myUsername") || "Guest"}
+            players={players}
+            onLeaveLobby={handleLeaveLobby}
+          />
+        </div>
       </div>
     </div>
   );

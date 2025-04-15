@@ -1,8 +1,10 @@
 // frontend/src/pages/Leaderboard.jsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useEffect } from "react";
 import { Card, CardContent } from "../components/ui/card";
 import Header from "../components/ui/header";
+import { Button } from "../components/ui/button";
+import { useNavigate } from "react-router-dom";
 import Chat from "../components/ui/chat";
 
 const StorePurchase = ({ points }) => (
@@ -14,9 +16,12 @@ const StorePurchase = ({ points }) => (
   </div>
 );
 
-const PlayerScore = ({ name, score }) => (
+const PlayerScore = ({ name, score, position }) => (
   <div className="flex justify-between items-center p-3 bg-gray-200 mb-1">
-    <span className="font-medium">{name}</span>
+    <div className="flex items-center space-x-2">
+      <span className="font-bold text-lg">{position}.</span>
+      <span className="font-medium">{name}</span>
+    </div>
     <span className="font-medium">{score} pts</span>
   </div>
 );
@@ -52,15 +57,11 @@ export default function Leaderboard() {
       });
   }, [gameId, roundId]);
 
-  // const players = [
-  //     { name: "Player 1", score: 750 },
-  //     { name: "Player 2", score: 650 },
-  //     { name: "Player 3", score: 500 },
-  //     { name: "Player 4", score: 450 },
-  //     { name: "Player 5", score: 400 },
-  //     { name: "Player 6", score: 350 },
-  // ];
   const storeItems = [{ points: 100 }, { points: 250 }, { points: 400 }];
+
+  const handlePlayAgain = () => {
+    navigate("/lobbies");
+  };
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen w-full bg-gray-100">
@@ -82,19 +83,31 @@ export default function Leaderboard() {
           </div>
 
           {/* Middle: leaderboard */}
-          <div className="w-2/4">
+          <div className="w-2/4 mx-auto">
             <Card>
               <CardContent>
                 <h2 className="text-xl font-bold mb-4 text-center">
-                  LEADERBOARD
+                  {gameResults ? "GAME RESULTS" : "LEADERBOARD"}
                 </h2>
-                {players.map((player, i) => (
-                  <PlayerScore
-                    key={i}
-                    name={player.name}
-                    score={player.score}
-                  />
-                ))}
+                {gameResults ? (
+                  <>
+                    {gameResults.players.map((player, index) => (
+                      <PlayerScore
+                        key={player.userId}
+                        name={player.username}
+                        score={player.score || 0}
+                        position={player.finalPosition || index + 1}
+                      />
+                    ))}
+                    <div className="mt-4 flex justify-center">
+                      <Button onClick={handlePlayAgain}>Play Again</Button>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-center text-gray-500">
+                    No recent game results. Play a game to see your score!
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>
