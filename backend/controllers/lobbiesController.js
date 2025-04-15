@@ -103,7 +103,6 @@ exports.createLobby = async (req, res) => {
   }
 };
 
-
 exports.joinLobby = async (req, res) => {
   try {
     const { lobby_id, password = null, user_id } = req.body;
@@ -177,8 +176,8 @@ exports.joinLobby = async (req, res) => {
     io.to(`lobby-${lobby_id}`).emit('lobby-update', {
       action: 'join',
       lobbyId: lobby_id,
-      // Provide the entire array so every client can refresh
-      players
+      players,
+      lobbyLeaderId: lobby.created_by
     });
 
     return res.status(200).json({ message: 'Joined lobby successfully', userId: user_id });
@@ -248,7 +247,8 @@ exports.leaveLobby = async (req, res) => {
       action: 'leave',
       lobbyId: lobby_id,
       userId: user_id,
-      players
+      players,
+      lobbyLeaderId: lobby.created_by
     });
 
     return res.status(200).json({ message: 'Left lobby successfully' });
@@ -257,7 +257,6 @@ exports.leaveLobby = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
-
 
 // Remove a player (optional; still no auth)
 exports.removePlayer = async (req, res) => {

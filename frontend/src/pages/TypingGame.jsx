@@ -55,21 +55,6 @@ export default function TypingGame() {
 
             // 1) Submit score to server
             submitScoreToServer(wpm)
-                // .then(() => {
-                //     if (myUserId === lobbyLeaderId) {
-                //         console.log("I am the leader -> finalizing round...");
-                //         finalizeRoundOnServer()
-                //             .then((resData) => {
-                //                 console.log("finalizeRound response:", resData);
-                //                 navigate("/leaderboard");
-                //             })
-                //             .catch((err) => {
-                //                 console.error("Error finalizing round:", err);
-                //             });
-                //     } else {
-                //         console.log("Score submitted. Waiting for leader to finalize...");
-                //     }
-                // })
                 .then(() => {
                     if (myUserId === lobbyLeaderId) {
                     finalizeRoundOnServer()

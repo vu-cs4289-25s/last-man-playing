@@ -37,6 +37,7 @@ export default function LoadingLobby() {
   const navigate = useNavigate();
   const [players, setPlayers] = useState([]);
   const [lobbyStatus, setLobbyStatus] = useState("");
+  const [lobbyLeaderId, setLobbyLeaderId] = useState(localStorage.getItem("lobbyLeaderId") || "");
   const [isAllPlayersReady, setIsAllPlayersReady] = useState(false);
 
   const lobbyId = localStorage.getItem("lobbyId") || "";
@@ -60,6 +61,10 @@ export default function LoadingLobby() {
     socket.on("lobby-update", (data) => {
       console.log("LoadingLobby: Received lobby-update:", data);
       setLobbyStatus(data.msg || data.action || "LOBBY UPDATE");
+      if (data.lobbyLeaderId !== lobbyLeaderId){
+        setLobbyLeaderId(data.lobbyLeaderId)
+        localStorage.setItem("lobbyLeaderId", lobbyLeaderId);
+      }
       if (data.players) {
         const updatedPlayers = data.players.map((p) => ({
           ...p,
