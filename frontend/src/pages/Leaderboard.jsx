@@ -120,7 +120,7 @@ export default function Leaderboard() {
           height: "calc(100vh - 72px)",
         }}
       >
-        <Chat lobbyId={lobbyId} userId={userId} />
+        <Chat lobbyId={lobbyId} username={localStorage.getItem("myUsername") || "Guest"} />
       </div>
     </div>
     );
