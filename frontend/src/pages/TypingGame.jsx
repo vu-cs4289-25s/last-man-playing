@@ -55,19 +55,28 @@ export default function TypingGame() {
 
             // 1) Submit score to server
             submitScoreToServer(wpm)
+                // .then(() => {
+                //     if (myUserId === lobbyLeaderId) {
+                //         console.log("I am the leader -> finalizing round...");
+                //         finalizeRoundOnServer()
+                //             .then((resData) => {
+                //                 console.log("finalizeRound response:", resData);
+                //                 navigate("/leaderboard");
+                //             })
+                //             .catch((err) => {
+                //                 console.error("Error finalizing round:", err);
+                //             });
+                //     } else {
+                //         console.log("Score submitted. Waiting for leader to finalize...");
+                //     }
+                // })
                 .then(() => {
                     if (myUserId === lobbyLeaderId) {
-                        console.log("I am the leader -> finalizing round...");
-                        finalizeRoundOnServer()
-                            .then((resData) => {
-                                console.log("finalizeRound response:", resData);
-                                navigate("/leaderboard");
-                            })
-                            .catch((err) => {
-                                console.error("Error finalizing round:", err);
-                            });
+                    finalizeRoundOnServer()
+                        .then(() => navigate("/rps"))     // ⬅️ go to RPS, not Leaderboard
+                        .catch((err) => console.error("Error finalizing round:", err));
                     } else {
-                        console.log("Score submitted. Waiting for leader to finalize...");
+                    console.log("Score submitted. Waiting for leader to finalize...");
                     }
                 })
                 .catch((err) => {
@@ -83,15 +92,19 @@ export default function TypingGame() {
         return () => clearInterval(interval);
     }, [timeLeft]);
 
+    // useEffect(() => {
+    //     socket.on("round-finalized", (data) => {
+    //         console.log("Received round-finalized event:", data);
+    //         navigate("/leaderboard");
+    //     });
+    //     return () => {
+    //         socket.off("round-finalized");
+    //     }
+    // }, [navigate]);
     useEffect(() => {
-        socket.on("round-finalized", (data) => {
-            console.log("Received round-finalized event:", data);
-            navigate("/leaderboard");
-        });
-        return () => {
-            socket.off("round-finalized");
-        }
-    }, [navigate]);
+        socket.on("round-finalized", () => navigate("/rps"));   // ⬅️ same change
+        return () => socket.off("round-finalized");
+      }, [navigate]);
 
     const handleChange = (e) => {
         if (timeLeft <= 0) return;
