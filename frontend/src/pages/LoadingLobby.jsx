@@ -1,11 +1,11 @@
 // frontend/src/pages/LoadingLobby.jsx
-// import React, { useEffect, useState } from "react";
-// porque no?
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { socket } from "../lib/socket";
 import Chat from "../components/ui/chat";
 
+// eslint-disable-next-line react/prop-types
 function PlayerCard({ username, isLoading, isReady, style }) {
   return (
     <div
@@ -37,10 +37,18 @@ export default function LoadingLobby() {
   const navigate = useNavigate();
   const [players, setPlayers] = useState([]);
   const [lobbyStatus, setLobbyStatus] = useState("");
+  const [lobbyLeaderId, setLobbyLeaderId] = useState(localStorage.getItem("lobbyLeaderId") || "");
   const [isAllPlayersReady, setIsAllPlayersReady] = useState(false);
 
   const lobbyId = localStorage.getItem("lobbyId") || "";
   const myUserId = localStorage.getItem("myUserId") || "Guest";
+
+  useEffect(() => {
+    if (!lobbyId) {
+      alert("You are no longer in a lobby. Redirecting to the lobbies page.");
+      navigate("/lobbies");
+    }
+  }, [lobbyId, navigate]);
 
   useEffect(() => {
     if (!lobbyId) {
@@ -53,8 +61,11 @@ export default function LoadingLobby() {
     socket.on("lobby-update", (data) => {
       console.log("LoadingLobby: Received lobby-update:", data);
       setLobbyStatus(data.msg || data.action || "LOBBY UPDATE");
+      if (data.lobbyLeaderId !== lobbyLeaderId){
+        setLobbyLeaderId(data.lobbyLeaderId)
+        localStorage.setItem("lobbyLeaderId", lobbyLeaderId);
+      }
       if (data.players) {
-        // Example placeholder logic for isReady/isLoading
         const updatedPlayers = data.players.map((p) => ({
           ...p,
           isReady: false,
@@ -84,7 +95,62 @@ export default function LoadingLobby() {
       socket.off("lobby-closed");
       socket.off("game-started");
     };
-  }, [navigate]);
+  }, [lobbyId, navigate]);
+
+  useEffect(() => {
+    window.history.pushState({ inLobby: true}, "");
+
+    const onPopState = (event) => {
+      if (event.state && event.state.inLobby){
+        alert("You have left the lobby");
+        handleLeaveLobby();
+      }
+    };
+
+    window.addEventListener("popstate", onPopState);
+    return () => {
+      window.removeEventListener("popstate", onPopState);
+    }
+  }, []);
+
+  function handleLeaveLobby() {
+    if (!lobbyId || !myUserId) {
+      alert("Lobby or user not found.");
+      return;
+    }
+    fetch("/api/lobbies/leave", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lobby_id: lobbyId, user_id: myUserId }),
+    })
+        .then((res) => res.json())
+        .then(() => {
+          localStorage.removeItem("lobbyId");
+          navigate("/lobbies")
+        })
+        .catch((err) => console.error("Error leaving lobby:", err));
+  }
+
+  async function handleStartGame() {
+    try {
+      const response = await fetch("/api/games/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lobby_id: lobbyId, user_id: myUserId }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.message || "Could not start game.");
+        return;
+      }
+      console.log("Game started! Everyone will be navigated via 'game-started' socket event.");
+
+    } catch (err) {
+      console.error("Error starting game:", err);
+      alert("Error starting game. Check console/logs.");
+    }
+  }
 
   // Circle layout positioning
   function calculatePosition(index, total, radius) {
@@ -113,44 +179,6 @@ export default function LoadingLobby() {
     ...p,
     position: calculatePosition(i, actualPlayers.length, 35),
   }));
-
-  function handleLeaveLobby() {
-    const lobbyId = localStorage.getItem("lobbyId");
-    const myUserId = localStorage.getItem("myUserId");
-    if (!lobbyId || !myUserId) {
-      alert("Lobby or user not found.");
-      return;
-    }
-    fetch("/api/lobbies/leave", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ lobby_id: lobbyId, user_id: myUserId }),
-    })
-      .then((res) => res.json())
-      .then(() => navigate("/lobbies"))
-      .catch((err) => console.error("Error leaving lobby:", err));
-  }
-
-  async function handleStartGame() {
-    try {
-      const response = await fetch("/api/games/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lobby_id: lobbyId, user_id: myUserId }),
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        alert(data.message || "Could not start game.");
-        return;
-      }
-      console.log("Game started! Everyone will be navigated via 'game-started' socket event.");
-
-    } catch (err) {
-      console.error("Error starting game:", err);
-      alert("Error starting game. Check console/logs.");
-    }
-  }
 
   return (
     <div className="relative w-full min-h-screen bg-gray-100">
