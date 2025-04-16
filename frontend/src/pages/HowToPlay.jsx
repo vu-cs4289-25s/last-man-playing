@@ -1,41 +1,31 @@
 // frontend/src/pages/HowToPlay.jsx
 
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Button } from "../components/ui/button";
+import Header from "../components/ui/Header";
 
 export default function HowToPlay() {
   return (
-    <div className="flex flex-col items-center justify-start min-h-screen w-full bg-gray-100">
-      {/* Centered Navbar */}
-      <header className="w-full bg-gray-300 py-4 px-6 flex justify-center">
-        <h1 className="text-2xl font-bold tracking-wide text-center">
-          LAST MAN PLAYING
-        </h1>
-      </header>
-
-      {/* Centered How to Play Card */}
-      <main className="flex justify-center items-center flex-1 w-full">
-        <Card className="w-[500px] shadow-lg rounded-lg">
-          {/* How to Play Title */}
-          <CardHeader>
-            <CardTitle className="text-center text-2xl font-bold">
-              HOW TO PLAY
-            </CardTitle>
-          </CardHeader>
-
-          <CardContent>
-            {/* Instructions */}
-            <p className="text-center text-gray-700 mb-6">Text rules etc etc</p>
-
-            {/* Play Button */}
-            <div className="flex justify-center">
-              <Button className="bg-[#0D1117] text-white hover:bg-[#161B22]">
-                PLAY
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="flex flex-col min-h-screen bg-gray-100">
+      <Header />
+      <main className="flex flex-col flex-1 items-center justify-center p-4">
+        <div className="max-w-4xl w-full bg-white p-8 rounded-lg shadow-lg">
+          <h1 className="text-3xl font-bold mb-6">How to Play</h1>
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Game Rules</h2>
+            <p>
+              Last Man Playing is a series of mini-games where players compete
+              to be the last one standing.
+            </p>
+            <h2 className="text-xl font-semibold">Getting Started</h2>
+            <ol className="list-decimal pl-6 space-y-2">
+              <li>Create or join a lobby</li>
+              <li>Wait for all players to join</li>
+              <li>Start the game when everyone is ready</li>
+              <li>Compete in various mini-games</li>
+              <li>Be the last player standing to win!</li>
+            </ol>
+          </div>
+        </div>
       </main>
     </div>
   );

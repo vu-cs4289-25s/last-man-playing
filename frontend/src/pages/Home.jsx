@@ -1,27 +1,15 @@
 // frontend/src/pages/Home.jsx
 
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
+import Header from "../components/ui/header";
 
 export default function Home() {
   const navigate = useNavigate();
 
-  useEffect(() =>{
-    const myUserId = localStorage.getItem("myUserId");
-    if (myUserId) {
-      navigate('/lobbies')
-    }
-  }, [navigate])
-
   return (
     <div className="flex flex-col items-center justify-start min-h-screen w-full bg-gray-100">
-      {/* Header */}
-      <header className="w-full bg-gray-300 py-4 px-6 flex justify-center">
-        <h1 className="text-2xl font-bold tracking-wide text-center">
-          LAST MAN PLAYING
-        </h1>
-      </header>
+      <Header />
 
       {/* Main Card */}
       <main className="flex justify-center items-center flex-1 w-full">
@@ -36,9 +24,6 @@ export default function Home() {
             <Button className="w-full" onClick={() => navigate("/register")}>
               REGISTER
             </Button>
-            <Button className="w-full" onClick={() => navigate("/lobbies")}>
-              PLAY AS GUEST
-              </Button>
             <Button className="w-full" onClick={() => navigate("/how-to-play")}>
               HOW TO PLAY
             </Button>
