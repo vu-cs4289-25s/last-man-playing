@@ -20,7 +20,7 @@ exports.getPublicLobbies = async (req, res) => {
           id: lobby.lobby_id,
           name: lobby.lobby_name,
           playerCount,
-          maxPlayers: lobby.num_players,
+          maxPlayers: lobby.max_players,
           createdAt: lobby.created_at
         };
       })
@@ -35,7 +35,9 @@ exports.getPublicLobbies = async (req, res) => {
 
 exports.createLobby = async (req, res) => {
   try {
-    const { lobby_name, is_private = false, password = null, user_id, num_players } = req.body;
+    const { lobby_name, is_private = false, password = null, user_id, max_players } = req.body;
+    const maxPlayers = max_players || 6;
+
 
     // Require a logged in user
     if (!user_id) {
@@ -57,7 +59,7 @@ exports.createLobby = async (req, res) => {
     const newLobby = await db.Lobby.create({
       lobby_id: newLobbyId,
       lobby_name, //lobby.lobby_name?
-      num_players: num_players,
+      max_players: maxPlayers,
       is_private: Boolean(is_private),
       password: is_private ? password : null,
       created_by: user_id,
@@ -132,7 +134,7 @@ exports.joinLobby = async (req, res) => {
       }
     }
 
-    // Check if lobby is full
+    // Check if lobby is full - should be max for lobby
     const participantCount = await db.LobbyParticipants.count({ where: { lobby_id } });
     if (participantCount >= 6) {
       return res.status(401).json({ message: 'Lobby is full' });
