@@ -1,6 +1,7 @@
 const { compareSync } = require("bcrypt");
 const { UUID } = require("sequelize/lib/data-types");
-
+const {Server} = require("socket.io");
+const db = require("./models");
 /************************************************
  * File: backend/socket.js
  ************************************************/
@@ -70,19 +71,21 @@ function init(server) {
     
 
     // ReactionGame finish
-    socket.on("reaction-finished", (data) => {
-      const { lobbyId, userId, isOut, totalTimeSec, avgReactionSec } = data;
+    socket.on("reaction-finished", async (data) => {
+      const { lobbyId, userId, isOut, totalTimeSec, avgReactionSec, username } = data;
       console.log('User ${userId} done with ReactionGame in lobby-${lobbyId}', data);
       if (!reactionResults[lobbyId]) {
         reactionResults[lobbyId] = {};
       }
       reactionResults[lobbyId][userId] = {
+        username,
         isOut,
         totalTimeSec, 
         avgReactionSec,
       };
 
-      const totalPlayers = 6; //CHANGE???
+      const lobby = await db.Lobby.findOne({where:{lobby_id: lobbyId}});
+      const totalPlayers = lobby ? lobby.num_players : 6;
       const doneCount = Object.keys(reactionResults[lobbyId]).length;
 
       io.to(`lobby-${lobbyId}`).emit("reaction-progress", {
@@ -96,8 +99,8 @@ function init(server) {
           ...info
         }));
 
-        const successes = resultsArr.filter(r => !r.isOut);
-        const fails = resultsArr.filter(r => r.isOut);
+        const successes = resultsArr.filter((r) => !r.isOut);
+        const fails = resultsArr.filter((r) => r.isOut);
 
         successes.sort((a,b) => a.avgReactionSec - b.avgReactionSec);
         fails.sort((a, b) => b.totalTimeSec - a.totalTimeSec);

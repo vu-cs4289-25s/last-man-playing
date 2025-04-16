@@ -30,9 +30,10 @@ const Lobby = sequelize.define('Lobby', {
         default_value: DataTypes.NOW,
     },
     // add for number of players max?
-    num_players: {
+    max_players: {
         type: DataTypes.INTEGER,
-        default_value: 2,
+        allowNull: false,
+        default_value: 6,
     }
     
 },{

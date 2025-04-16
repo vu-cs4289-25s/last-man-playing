@@ -48,7 +48,7 @@ export default function CreateLobby() {
       is_private: isPrivate,
       password: isPrivate ? lobbyPassword : null,
       user_id: userId,
-      num_players: maxPlayers,
+      max_players: maxPlayers,
     };
 
     try {

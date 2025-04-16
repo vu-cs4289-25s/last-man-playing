@@ -43,7 +43,7 @@ const server = http.createServer(app);
 initSocket(server);
 
 // Sync DB, then start listening
-db.sequelize.sync()
+db.sequelize.sync({alter: true})
   .then(async () => {
     console.log('Database synchronized! (alter: true)');
       console.log(JSON.stringify(await db.User.findAll()));
