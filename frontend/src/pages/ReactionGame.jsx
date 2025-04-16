@@ -29,6 +29,7 @@ export default function ReactionGame() {
   const lastColorSwitchRef = useRef(null);
   const lobbyId = localStorage.getItem("lobbyId"); // || ""
   const userId = localStorage.getItem("myUserId"); // || "Guest"
+  const username = localStorage.getItem("myUsername") || "Guest";
  
 
   // pregame
@@ -175,6 +176,7 @@ export default function ReactionGame() {
       isOut,
       totalTimeSec: parseFloat(totalTimeSec),
       avgReactionSec: avgSec,
+      username,
     });
   }
 

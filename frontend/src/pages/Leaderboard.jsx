@@ -40,7 +40,7 @@ export default function Leaderboard() {
                 const sorted = data.scores.sort((a, b) => b.score - a.score);
                 // lazy way will fix later
                 const playersMap = sorted.map(player => ({
-                    name: player.user_id,
+                    name: player.username,
                     score: player.score,
                 }))
                 setPlayers(playersMap)

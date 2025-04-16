@@ -16,6 +16,10 @@ const RoundResults = sequelize.define('RoundResults', {
         type: DataTypes.UUID,
         allowNull: false
     },
+    username: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
     score: {
         type: DataTypes.DECIMAL(10, 2),  // or integer, your call
         allowNull: false,

@@ -88,11 +88,18 @@ exports.submitScore = async (req, res) => {
             where: { round_id: roundId, user_id: user_id }
         });
 
+        
+        const user = await db.User.findOne({ where: { user_id } });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
         if (!roundResult) {
             roundResult = await db.RoundResults.create({
                 round_result_id: uuidv4(),
                 round_id: roundId,
                 user_id: user_id,
+                username: user.username,
                 score,
                 eliminated: false,
             });
@@ -138,6 +145,16 @@ exports.finalizeRound = async (req, res) => {
         }
 
         const roundResults = await db.RoundResults.findAll({ where: { round_id: roundId }});
+        // const roundResults = await db.RoundResults.findAll({
+        //     where: { round_id: roundId },
+        //     order: [['score', 'DESC']],
+        //     include: [{
+        //       model: db.User,
+        //       attributes: ['username']
+        //     }]
+        //   });
+          
+
         if (roundResults.length === 0) {
             return res.status(400).json ({ message: 'No scores found for this round' });
         }
