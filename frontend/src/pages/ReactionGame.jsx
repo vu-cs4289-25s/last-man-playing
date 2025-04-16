@@ -15,10 +15,10 @@ export default function ReactionGame() {
   const [colorCycleTimeLeft, setColorCycleTimeLeft] = useState(0);
 
   const [roundsCompleted, setRoundsCompleted] = useState(0); // need 10 successes
-  const [strikes, setStrikes] = useState(0);                 // 3 => out
+  const [strikes, setStrikes] = useState(0); // 3 => out
   const [hasSucceededThisCycle, setHasSucceededThisCycle] = useState(false);
 
-  const [isHolding, setIsHolding] = useState(false);  // if user is physically pressing
+  const [isHolding, setIsHolding] = useState(false); // if user is physically pressing
   const [isHovering, setIsHovering] = useState(false);
 
   // Reaction times
@@ -29,7 +29,6 @@ export default function ReactionGame() {
   const lastColorSwitchRef = useRef(null);
   const lobbyId = localStorage.getItem("lobbyId"); // || ""
   const userId = localStorage.getItem("myUserId"); // || "Guest"
- 
 
   // pregame
   useEffect(() => {
@@ -38,14 +37,14 @@ export default function ReactionGame() {
     if (pregameTimeLeft <= 0) {
       addStrike();
       setPregameTimeLeft(15);
-    };
+    }
     // timer decrements per second
     const timerId = setInterval(() => {
-      setPregameTimeLeft((t) => t - 1)
+      setPregameTimeLeft((t) => t - 1);
     }, 1000);
 
     return () => clearInterval(timerId);
-  }, [gamePhase, pregameTimeLeft])
+  }, [gamePhase, pregameTimeLeft]);
 
   // start game when player presses down
   function handleMouseDownPregame() {
@@ -83,55 +82,54 @@ export default function ReactionGame() {
     }
 
     const timerId = setInterval(() => {
-      setColorCycleTimeLeft((t) => t - 1)
+      setColorCycleTimeLeft((t) => t - 1);
     }, 1000);
     return () => clearInterval(timerId);
-  }, [gamePhase, colorCycleTimeLeft, strikes, roundsCompleted])
+  }, [gamePhase, colorCycleTimeLeft, strikes, roundsCompleted]);
 
   useEffect(() => {
     socket.on("reaction-progress", (data) => {
       console.log("Reaction progress =>", data);
       // maybe set state like setOthersDone(data.doneCount)
     });
-  
+
     socket.on("reaction-all-done", (payload) => {
       console.log("All done =>", payload);
       // show final ranking or do countdown
     });
-  
+
     socket.on("reaction-go-leaderboard", () => {
       // e.g. navigate("/leaderboard");
     });
-  
+
     return () => {
       socket.off("reaction-progress");
       socket.off("reaction-all-done");
       socket.off("reaction-go-leaderboard");
     };
   }, []);
-  
 
-  function handleEndOfColorCycle(){
-     // If the user has not done the correct action by now, that’s a fail
-     setHasSucceededThisCycle(false);
-     let success = false; // no success -> no reaction time - no incrament
+  function handleEndOfColorCycle() {
+    // If the user has not done the correct action by now, that’s a fail
+    setHasSucceededThisCycle(false);
+    let success = false; // no success -> no reaction time - no incrament
 
-     if (color === "green") {
-       success = isHolding; //success if isHolding===true
-     } else {
-       success = !isHolding; // success if isHolding===false
-     };
- 
-     if (!success) {
-       addStrike();
-     };
- 
-     // flip color
-     const newColor = (color === "green") ? "red" : "green";
-     setColor(newColor);
-     const duration = randomInt(5, 10);
-     setColorCycleTimeLeft(duration);
-     lastColorSwitchRef.current = Date.now();
+    if (color === "green") {
+      success = isHolding; //success if isHolding===true
+    } else {
+      success = !isHolding; // success if isHolding===false
+    }
+
+    if (!success) {
+      addStrike();
+    }
+
+    // flip color
+    const newColor = color === "green" ? "red" : "green";
+    setColor(newColor);
+    const duration = randomInt(5, 10);
+    setColorCycleTimeLeft(duration);
+    lastColorSwitchRef.current = Date.now();
   }
 
   function addStrike() {
@@ -139,14 +137,17 @@ export default function ReactionGame() {
       const nextVal = prev + 1;
       if (nextVal >= 3) {
         endGame(false);
-      };
+      }
       return nextVal;
-    })
+    });
   }
 
   function endGame(success) {
     setGamePhase("done");
-    const totalTimeSec = ((Date.now() - (gameStartTime || Date.now())) / 1000).toFixed(2);
+    const totalTimeSec = (
+      (Date.now() - (gameStartTime || Date.now())) /
+      1000
+    ).toFixed(2);
 
     if (!success) {
       setFinalMessage(
@@ -160,12 +161,13 @@ export default function ReactionGame() {
 
       setFinalMessage(
         `Congratulations! You completed 10 color changes.\n` +
-        `Average Reaction Time: ${avgSec} seconds.`
+          `Average Reaction Time: ${avgSec} seconds.`
       );
     }
 
     const sum = reactionTimes.reduce((acc, val) => acc + val, 0);
-    const avgMs = reactionTimes.length > 0 ? sum / reactionTimes.length : 999999;
+    const avgMs =
+      reactionTimes.length > 0 ? sum / reactionTimes.length : 999999;
     const avgSec = parseFloat((avgMs / 1000).toFixed(3));
 
     const isOut = !success;
@@ -183,17 +185,21 @@ export default function ReactionGame() {
     if (color === "green") {
       // Multiple fails are allowed, but only 1 success if hasn't succeeded yet
       if (!hasSucceededThisCycle) {
-        if (color === "green" && (strikes === 1 || strikes === 2) && roundsCompleted === 0) {
+        if (
+          color === "green" &&
+          (strikes === 1 || strikes === 2) &&
+          roundsCompleted === 0
+        ) {
           // edge case
         } else {
           // record success
-        const reaction = Date.now() - (lastColorSwitchRef.current || Date.now());
-        setReactionTimes((arr) => [...arr, reaction]);
-        setLastReactionTime(reaction);
-        setRoundsCompleted((r) => r + 1);
-        setHasSucceededThisCycle(true);
-        };
-        
+          const reaction =
+            Date.now() - (lastColorSwitchRef.current || Date.now());
+          setReactionTimes((arr) => [...arr, reaction]);
+          setLastReactionTime(reaction);
+          setRoundsCompleted((r) => r + 1);
+          setHasSucceededThisCycle(true);
+        }
       }
       // Physically pressing now
       setIsHolding(true);
@@ -202,7 +208,7 @@ export default function ReactionGame() {
       addStrike();
       // We allow multiple strikes if user presses multiple times on red
       setIsHolding(true); // user physically pressed anyway
-    };
+    }
   }
 
   function handleMouseUpInGame() {
@@ -210,7 +216,8 @@ export default function ReactionGame() {
     if (color === "red") {
       if (!hasSucceededThisCycle) {
         // Record success
-        const reaction = Date.now() - (lastColorSwitchRef.current || Date.now());
+        const reaction =
+          Date.now() - (lastColorSwitchRef.current || Date.now());
         setReactionTimes((arr) => [...arr, reaction]);
         setLastReactionTime(reaction);
         setRoundsCompleted((r) => r + 1);
@@ -218,26 +225,26 @@ export default function ReactionGame() {
         setHasSucceededThisCycle(true);
       }
       // physically let go
-      setIsHolding(false)
+      setIsHolding(false);
     } else {
       // color=green => letting go is wrong => strike
-      addStrike()
+      addStrike();
       // If the user repeatedly lets go on green, that can be multiple strikes
-      setIsHolding(false)
+      setIsHolding(false);
     }
   }
 
-  const normalGreen = "#008000"
-  const darkGreen   = "#005500"
-  const normalRed   = "#FF0000"
-  const darkRed     = "#AA0000"
+  const normalGreen = "#008000";
+  const darkGreen = "#005500";
+  const normalRed = "#FF0000";
+  const darkRed = "#AA0000";
 
   // "Wait" means user is pressing => darkaer color
-  let buttonBgColor
+  let buttonBgColor;
   if (color === "green") {
-    buttonBgColor = isHolding ? darkGreen : normalGreen
+    buttonBgColor = isHolding ? darkGreen : normalGreen;
   } else {
-    buttonBgColor = isHolding ? darkRed : normalRed
+    buttonBgColor = isHolding ? darkRed : normalRed;
   }
 
   if (gamePhase === "pregame") {
@@ -245,15 +252,15 @@ export default function ReactionGame() {
       <div className="min-h-screen flex flex-col bg-gray-100">
         {/* Nav */}
         <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
-        <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
-        <div className="flex items-center space-x-4">
-          <span className="text-xl font-bold"></span>
-          <img
-            alt="Profile"
-            className="w-10 h-10 rounded-full border-2 border-gray-500"
-          />
-        </div>
-      </header>
+          <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
+          <div className="flex items-center space-x-4">
+            <span className="text-xl font-bold"></span>
+            <img
+              alt="Profile"
+              className="w-10 h-10 rounded-full border-2 border-gray-500"
+            />
+          </div>
+        </header>
 
         <main className="flex flex-col items-center justify-center flex-1 p-4">
           <h2 className="text-3xl font-bold mb-4">RED LIGHT GREEN LIGHT</h2>
@@ -291,29 +298,29 @@ export default function ReactionGame() {
           </div>
         </main>
       </div>
-    )
+    );
   }
 
   if (gamePhase === "done") {
     return (
       <div className="min-h-screen flex flex-col bg-gray-100">
         <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
-        <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
-        <div className="flex items-center space-x-4">
-          <span className="text-xl font-bold"></span>
-          <img
-            alt="Profile"
-            className="w-10 h-10 rounded-full border-2 border-gray-500"
-          />
-        </div>
-      </header>
+          <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
+          <div className="flex items-center space-x-4">
+            <span className="text-xl font-bold"></span>
+            <img
+              alt="Profile"
+              className="w-10 h-10 rounded-full border-2 border-gray-500"
+            />
+          </div>
+        </header>
 
         <main className="flex flex-col items-center justify-center flex-1 p-4">
           <h2 className="text-3xl font-bold mb-2">RED LIGHT GREEN LIGHT</h2>
           <p className="whitespace-pre-line mt-4 text-lg">{finalMessage}</p>
         </main>
       </div>
-    )
+    );
   }
 
   // IN-GAME
@@ -379,7 +386,7 @@ export default function ReactionGame() {
         </div>
       </main>
     </div>
-  )
+  );
 }
 
 // IT WORKS!!

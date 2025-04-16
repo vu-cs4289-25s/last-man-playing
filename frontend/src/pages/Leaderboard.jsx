@@ -1,8 +1,9 @@
 // frontend/src/pages/Leaderboard.jsx
 
-import {useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "../components/ui/card";
 import Chat from "../components/ui/chat";
+import Header from "../components/ui/Header";
 
 const StorePurchase = ({ points }) => (
   <div className="flex items-center justify-between w-full p-2 mb-2">
@@ -21,59 +22,49 @@ const PlayerScore = ({ name, score }) => (
 );
 
 export default function Leaderboard() {
-    const [players, setPlayers] = useState([]);
-    const lobbyId = localStorage.getItem("lobbyId") || "123";
-    const userId = localStorage.getItem("myUserId") || "Guest";
-    const gameId = localStorage.getItem("gameId");
-    const roundId = localStorage.getItem("roundId");
+  const [players, setPlayers] = useState([]);
+  const lobbyId = localStorage.getItem("lobbyId") || "123";
+  const userId = localStorage.getItem("myUserId") || "Guest";
+  const gameId = localStorage.getItem("gameId");
+  const roundId = localStorage.getItem("roundId");
 
-    useEffect(() => {
-        if (!gameId || !roundId) {
-            console.warn("No gameId or roundId found, can’t fetch leaderboard");
-            return;
-        }
+  useEffect(() => {
+    if (!gameId || !roundId) {
+      console.warn("No gameId or roundId found, can't fetch leaderboard");
+      return;
+    }
 
-        fetch(`/api/games/round/${roundId}/scores`)
-            .then((res) => res.json())
-            .then((data) => {
-                console.log(data);
-                const sorted = data.scores.sort((a, b) => b.score - a.score);
-                // lazy way will fix later
-                const playersMap = sorted.map(player => ({
-                    name: player.user_id,
-                    score: player.score,
-                }))
-                setPlayers(playersMap)
-                console.log(playersMap);
-            })
-            .catch((error) => {
-                console.error(`Error fetching scores: ${error}`)
-            })
-    }, [gameId, roundId])
+    fetch(`/api/games/round/${roundId}/scores`)
+      .then((res) => res.json())
+      .then((data) => {
+        console.log(data);
+        const sorted = data.scores.sort((a, b) => b.score - a.score);
+        // lazy way will fix later
+        const playersMap = sorted.map((player) => ({
+          name: player.user_id,
+          score: player.score,
+        }));
+        setPlayers(playersMap);
+        console.log(playersMap);
+      })
+      .catch((error) => {
+        console.error(`Error fetching scores: ${error}`);
+      });
+  }, [gameId, roundId]);
 
-    // const players = [
-    //     { name: "Player 1", score: 750 },
-    //     { name: "Player 2", score: 650 },
-    //     { name: "Player 3", score: 500 },
-    //     { name: "Player 4", score: 450 },
-    //     { name: "Player 5", score: 400 },
-    //     { name: "Player 6", score: 350 },
-    // ];
-    const storeItems = [{ points: 100 }, { points: 250 }, { points: 400 }];
+  // const players = [
+  //     { name: "Player 1", score: 750 },
+  //     { name: "Player 2", score: 650 },
+  //     { name: "Player 3", score: 500 },
+  //     { name: "Player 4", score: 450 },
+  //     { name: "Player 5", score: 400 },
+  //     { name: "Player 6", score: 350 },
+  // ];
+  const storeItems = [{ points: 100 }, { points: 250 }, { points: 400 }];
 
-    return (
+  return (
     <div className="relative w-full min-h-screen bg-gray-100">
-      {/* NAVBAR */}
-      <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
-        <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
-        <div className="flex items-center space-x-4">
-          <span className="text-xl font-bold"></span>
-          <img
-            alt="Profile"
-            className="w-10 h-10 rounded-full border-2 border-gray-500"
-          />
-        </div>
-      </header>
+      <Header />
 
       {/* MAIN content: centered store + board, with pr-[350px] for pinned chat */}
       <main className="pt-6 px-4 pr-[350px] flex flex-col items-center">
@@ -120,8 +111,11 @@ export default function Leaderboard() {
           height: "calc(100vh - 72px)",
         }}
       >
-        <Chat lobbyId={lobbyId} username={localStorage.getItem("myUsername") || "Guest"} />
+        <Chat
+          lobbyId={lobbyId}
+          username={localStorage.getItem("myUsername") || "Guest"}
+        />
       </div>
     </div>
-    );
+  );
 }
