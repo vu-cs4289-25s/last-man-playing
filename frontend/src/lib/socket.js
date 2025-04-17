@@ -2,12 +2,14 @@
 
 import { io } from "socket.io-client";
 
-export const socket = io("http://localhost:4000", {
-  path: "/socket.io",
-  autoConnect: true,
-  withCredentials: true,
-  transports: ["websocket", "polling"],
-});
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
+
+export const socket = SOCKET_URL
+    ? io(SOCKET_URL, {
+      path: "/socket.io",
+      transports: ["websocket", "polling"],
+    })
+    : io({ path: "/socket.io", transports: ["websocket", "polling"] });
 
 socket.on("connect", () => {
   console.log("Socket connected successfully!");
