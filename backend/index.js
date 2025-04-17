@@ -7,6 +7,7 @@ const express = require('express');
 const cors = require('cors');
 const http = require('http');
 const db = require('./models');
+const path = require('path');
 
 // Import your routes (no auth needed for lobbies)
 const authRoutes = require('./routes/auth');   // if you still want them
@@ -30,6 +31,12 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/lobbies', lobbyRoutes);
 app.use('/api/games', gameRoutes);
+
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+})
 
 // Health check route
 app.get('/', (req, res) => {
