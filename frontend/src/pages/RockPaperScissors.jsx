@@ -36,6 +36,32 @@ export default function RockPaperScissors() {
   const [timeLeft, setTimeLeft] = useState(GAME_TIMER);
   const [finished, setFinished] = useState(false);
 
+  // [Protocol A] localStorage key
+  const storageKey = `rps_${roundId}_${myUserId}`;
+
+  // [Protocol A] restore state on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const { round: r, wins: w, ties: t, timeLeft: tl, finished: f } = JSON.parse(saved);
+        setRound(r);
+        setWins(w);
+        setTies(t);
+        setTimeLeft(tl);
+        setFinished(f);
+      } catch {}
+    }
+  }, [storageKey]);
+
+  // [Protocol A] save state on change
+  useEffect(() => {
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify({ round, wins, ties, timeLeft, finished })
+    );
+  }, [storageKey, round, wins, ties, timeLeft, finished]);
+
   /* ───────────── socket setup ───────────── */
   useEffect(() => {
     lobbyId && socket.emit("join-lobby", { lobbyId });
@@ -91,6 +117,9 @@ export default function RockPaperScissors() {
   const finishGame = async () => {
     if (finished) return;
     setFinished(true);
+
+    // [Protocol A] clear saved state on game end
+    localStorage.removeItem(storageKey);
 
     const score = wins * 100 + ties * 50;
 
@@ -159,7 +188,7 @@ export default function RockPaperScissors() {
             )}
 
             <p className="mb-4">
-              Wins {wins} Ties {ties}
+              Wins {wins} Ties {ties}
             </p>
 
             {/* 10‑sec progress bar */}

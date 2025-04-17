@@ -3,7 +3,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import HowToPlay from "./pages/HowToPlay";
-import Profile from "./pages/Profile"; // <-- Import Profile Page
+import Profile from "./pages/Profile";
 import "./index.css";
 import Leaderboard from "./pages/Leaderboard";
 import LoadingLobby from "./pages/LoadingLobby";
@@ -14,6 +14,8 @@ import RockPaperScissors from "./pages/RockPaperScissors";
 import TypingGame from "./pages/TypingGame.jsx";
 import { UserProvider } from "../context/UserContext.jsx";
 import MathBlitz from "./pages/MathBlitz";
+import SequenceMemoryGame from "./pages/SequenceMemoryGame.jsx";
+
 
 export default function App() {
   return (
@@ -36,6 +38,7 @@ export default function App() {
           <Route path="/rps" element={<RockPaperScissors />} />
           <Route path="/typinggame" element={<TypingGame />} />
           <Route path="/mathblitz" element={<MathBlitz />} />
+          <Route path="/sequencegame" element={<SequenceMemoryGame />} />
         </Routes>
       </Router>
     </UserProvider>
