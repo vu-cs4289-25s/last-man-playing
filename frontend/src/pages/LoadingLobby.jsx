@@ -10,6 +10,7 @@ import {
 } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import Header from "../components/ui/Header";
+import ErrorAlert from "../components/ui/alert";
 
 // eslint-disable-next-line react/prop-types
 function PlayerCard({ username, isLoading, isReady, style }) {
@@ -49,45 +50,46 @@ export default function LoadingLobby() {
     localStorage.getItem("lobbyLeaderId") || ""
   );
   const [isAllPlayersReady, setIsAllPlayersReady] = useState(false);
+  const [leftLobbyMessage, setLeftLobbyMessage] = useState("");
 
   const lobbyId = localStorage.getItem("lobbyId") || "";
   const myUserId = localStorage.getItem("myUserId") || "Guest";
 
   useEffect(() => {
     if (!lobbyId) {
-      alert("You are no longer in a lobby. Redirecting to the lobbies page.");
-      navigate("/lobbies");
+      setLeftLobbyMessage("You are no longer in a lobby. Redirecting to the lobbies page...");
     }
-  }, [lobbyId, navigate]);
+  }, [lobbyId]);
 
   useEffect(() => {
-    if (!lobbyId) {
-      console.error("No lobbyId found in localStorage");
-      return;
+    if (leftLobbyMessage) {
+      const timeout = setTimeout(() => {
+        navigate("/lobbies");
+      }, 3000); // show alert for 3 seconds
+      return () => clearTimeout(timeout);
     }
+  }, [leftLobbyMessage, navigate]);
+
+  useEffect(() => {
+    if (!lobbyId) return;
 
     socket.emit("join-lobby", { lobbyId });
 
     socket.on("lobby-update", (data) => {
       setLobbyStatus(data.msg || data.action || "LOBBY UPDATE");
-
-      if (data.lobbyLeaderId) {
+      if (data.lobbyLeaderId !== lobbyLeaderId) {
         setLobbyLeaderId(data.lobbyLeaderId);
         localStorage.setItem("lobbyLeaderId", data.lobbyLeaderId);
       }
-
       if (data.players) {
-        const updatedPlayers = data.players.map((p) => ({
-          ...p,
-          isReady: false,
-          isLoading: false,
-        }));
+        const updatedPlayers = data.players.map((p) => ({ ...p, isReady: false, isLoading: false }));
         setPlayers(updatedPlayers);
       }
     });
 
     socket.on("lobby-closed", (data) => {
-      alert("Lobby closed: " + data.message);
+      setLeftLobbyMessage("Lobby closed: " + data.message);
+      setTimeout(() => setLeftLobbyMessage(""), 4000);
       navigate("/lobbies");
     });
 
@@ -102,7 +104,7 @@ export default function LoadingLobby() {
       socket.off("lobby-closed");
       socket.off("game-started");
     };
-  }, [lobbyId, navigate]);
+  }, [lobbyId, lobbyLeaderId, navigate]);
 
   useEffect(() => {
     window.history.pushState({ inLobby: true }, "");
@@ -122,9 +124,11 @@ export default function LoadingLobby() {
 
   function handleLeaveLobby() {
     if (!lobbyId || !myUserId) {
-      alert("Lobby or user not found.");
+      setLeftLobbyMessage("Lobby or user not found.");
+      setTimeout(() => setLeftLobbyMessage(""), 4000);
       return;
     }
+
     fetch("/api/lobbies/leave", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -133,9 +137,15 @@ export default function LoadingLobby() {
       .then((res) => res.json())
       .then(() => {
         localStorage.removeItem("lobbyId");
+        setLeftLobbyMessage("You have left the lobby.");
+        setTimeout(() => setLeftLobbyMessage(""), 4000);
         navigate("/lobbies");
       })
-      .catch((err) => console.error("Error leaving lobby:", err));
+      .catch((err) => {
+        console.error("Error leaving lobby:", err);
+        setLeftLobbyMessage("Failed to leave lobby.");
+        setTimeout(() => setLeftLobbyMessage(""), 4000);
+      });
   }
 
   async function handleStartGame() {
@@ -148,13 +158,14 @@ export default function LoadingLobby() {
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.message || "Could not start game.");
+        setLeftLobbyMessage(data.message || "Could not start game.");
+        setTimeout(() => setLeftLobbyMessage(""), 4000);
         return;
       }
-      console.log("Game started!");
     } catch (err) {
       console.error("Error starting game:", err);
-      alert("Error starting game. Check console/logs.");
+      setLeftLobbyMessage("Error starting game.");
+      setTimeout(() => setLeftLobbyMessage(""), 4000);
     }
   }
 
@@ -167,63 +178,47 @@ export default function LoadingLobby() {
     };
   }
 
-  const isReadyText = isAllPlayersReady
-    ? "PLAYERS READY"
-    : "PLAYERS LOADING...";
+  const isReadyText = isAllPlayersReady ? "PLAYERS READY" : "PLAYERS LOADING...";
+  const actualPlayers = players.length > 0 ? players : Array.from({ length: 6 }, (_, i) => ({
+    user_id: `${i + 1}`,
+    username: `Placeholder${i + 1}`,
+    isReady: false,
+    isLoading: true,
+  }));
+  const positionedPlayers = actualPlayers.map((p, i) => ({ ...p, position: calculatePosition(i, actualPlayers.length, 35) }));
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100">
-      <Header />
-      <main className="flex flex-col flex-1 items-center justify-center p-4">
+    <div className="relative w-full min-h-screen bg-gray-100">
+      <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
+        <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
+        <img src="/api/placeholder/40/40" alt="Profile" className="w-10 h-10 rounded-full border-2 border-gray-500" />
+      </header>
+
+      <main className="pt-6 px-6 pr-[350px] flex flex-col items-center justify-center">
+        {leftLobbyMessage && (
+          <div className="mb-4 w-full max-w-xl">
+            <ErrorAlert message={leftLobbyMessage} />
+          </div>
+        )}
+
         <h2 className="text-2xl font-bold mb-4">{isReadyText}</h2>
 
         <div className="relative w-full aspect-square max-w-2xl">
-          {/* Center text / button */}
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
-            <h3 className="text-xl font-bold mb-2">GAME LOBBY #{lobbyId}</h3>
-
-            {myUserId === lobbyLeaderId && (
-              <button
-                className="bg-gray-700 text-white px-6 py-2 rounded-md font-medium mb-2"
-                onClick={handleStartGame}
-              >
-                Start Game
-              </button>
-            )}
-
+            <h3 className="text-xl font-bold mb-2">GAME LOBBY #1</h3>
+            <button className="bg-gray-700 text-white px-6 py-2 rounded-md font-medium mb-2" onClick={handleStartGame}>Start Game</button>
             <div className="mt-4">
-              <button
-                onClick={handleLeaveLobby}
-                className="bg-gray-700 text-white px-4 py-2 rounded-md"
-              >
-                Leave Lobby
-              </button>
+              <button onClick={handleLeaveLobby} className="bg-gray-700 text-white px-4 py-2 rounded-md">Leave Lobby</button>
             </div>
           </div>
 
-          {/* Player Cards */}
-          {players.map((player, idx) => (
-            <PlayerCard
-              key={player.user_id || idx}
-              username={player.username}
-              isLoading={player.isLoading}
-              isReady={player.isReady}
-              style={calculatePosition(idx, players.length, 35)}
-            />
+          {positionedPlayers.map((player, idx) => (
+            <PlayerCard key={player.user_id || idx} username={player.username} isLoading={player.isLoading} isReady={player.isReady} style={player.position} />
           ))}
         </div>
       </main>
 
-      {/* Chat */}
-      <div
-        className="fixed bg-[#1f2430] border-l border-gray-700"
-        style={{
-          width: "350px",
-          right: 0,
-          top: "72px",
-          height: "calc(100vh - 72px)",
-        }}
-      >
+      <div className="fixed bg-[#1f2430] border-l border-gray-700" style={{ width: "350px", right: 0, top: "72px", height: "calc(100vh - 72px)" }}>
         <Chat
           lobbyId={lobbyId}
           username={localStorage.getItem("myUsername") || "Guest"}
