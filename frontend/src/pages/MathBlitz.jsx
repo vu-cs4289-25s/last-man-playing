@@ -55,7 +55,7 @@ export default function MathGame() {
 
   useEffect(() => {
     if (lobbyId) socket.emit("join-lobby", { lobbyId });
-    socket.on("round-finalized", () => navigate("/leaderboard"));
+    socket.on("round-finalized", () => navigate("/ReactionGame"));
     return () => socket.off("round-finalized");
   }, [navigate, lobbyId]);
 
@@ -103,7 +103,7 @@ export default function MathGame() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ user_id: myUserId }),
         });
-        navigate("/leaderboard");
+        navigate("/ReactionGame");
       }
     } catch (err) {
       console.error("Error submitting math game score:", err);

@@ -115,7 +115,7 @@ export default function ReactionGame() {
     setGamePhase("ingame");
     setGameStartTime(Date.now());
 
-    const duration = randomInt(5, 10); // 5 - 11 secs for color change
+    const duration = randomInt(3, 7); // 3 - 7 secs for color change
     setColorCycleTimeLeft(duration);
     lastColorSwitchRef.current = Date.now();
 
@@ -181,7 +181,7 @@ export default function ReactionGame() {
     // flip color
     const newColor = color === "green" ? "red" : "green";
     setColor(newColor);
-    const duration = randomInt(5, 10);
+    const duration = randomInt(3, 7);
     setColorCycleTimeLeft(duration);
     lastColorSwitchRef.current = Date.now();
   }
@@ -237,7 +237,14 @@ export default function ReactionGame() {
 
   function handleMouseDownInGame() {
     if (color === "green") {
-      if (!hasSucceededThisCycle) {
+      if (
+        color === "green" && /*dont need repetition*/
+        (strikes === 1 || strikes === 2) &&
+        roundsCompleted === 0
+      ) {
+        // edge case
+      } else {
+        // record success
         const reaction =
           Date.now() - (lastColorSwitchRef.current || Date.now());
         setReactionTimes((arr) => [...arr, reaction]);

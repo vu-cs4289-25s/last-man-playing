@@ -12,6 +12,7 @@ import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { socket } from "../lib/socket";
 import Header from "../components/ui/Header";
+import ErrorAlert from "../components/ui/alert";
 
 function normalizeLobbyName(str) {
   return str.toLowerCase().replace(/[^a-z0-9 ]/g, "");
@@ -20,12 +21,15 @@ function normalizeLobbyName(str) {
 export default function Lobbies() {
   const [lobbies, setLobbies] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
+  // full lobby
 
   // Ensure the user is logged in (user_id exists)
   useEffect(() => {
     const myUserId = localStorage.getItem("myUserId");
     if (!myUserId) {
+      // alert
       alert("You must be logged in to view lobbies.");
       navigate("/login");
     }
@@ -66,37 +70,39 @@ export default function Lobbies() {
 
   // Handle joining a lobby
   const handleJoin = (lobbyId) => {
-    // Retrieve the logged-in user's ID from localStorage
     const myUserId = localStorage.getItem("myUserId");
     if (!myUserId) {
-      alert("You must be logged in to join a lobby.");
-      return;
+      return setError("You must be logged in to join a lobby.");
     }
-
-    // Send the API call including the real user ID
+  
     fetch("/api/lobbies/join", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        lobby_id: lobbyId,
-        user_id: myUserId, // Use the stored user ID
-      }),
+      body: JSON.stringify({ lobby_id: lobbyId, user_id: myUserId }),
     })
-      .then((res) => res.json())
-      .then((result) => {
-        console.log("Joined lobby response:", result);
-        if (
-          result.message === "Joined lobby successfully" ||
-          result.message === "Already in lobby"
-        ) {
+      .then((res) => res.json().then(body => ({ status: res.status, body })))
+      .then(({ status, body }) => {
+        if (status === 200 &&
+            (body.message === "Joined lobby successfully" ||
+             body.message === "Already in lobby")) {
           localStorage.setItem("lobbyId", lobbyId);
+          const joined = lobbies.find((l) => l.id === lobbyId);
+         if (joined) {
+           localStorage.setItem("lobbyName", joined.name);
+           localStorage.setItem("maxPlayers", String(joined.maxPlayers));
+         }
           navigate("/loadinglobby");
         } else {
-          alert(result.message || "Failed to join lobby");
+          // ← show our alert instead of alert()
+          setError(body.message || "Failed to join lobby");
         }
       })
-      .catch((err) => console.error("Error joining lobby:", err));
+      .catch((err) => {
+        console.error(err);
+        setError("Network error while joining lobby");
+      });
   };
+  
 
   const handleCreateLobby = () => {
     const myUserId = localStorage.getItem("myUserId");
@@ -123,6 +129,7 @@ export default function Lobbies() {
           </CardHeader>
 
           <CardContent>
+          {error && <ErrorAlert message={error} className="mb-4" />}
             <div className="mb-4">
               <Input
                 type="text"
