@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { socket } from "../lib/socket";
-import {useNavigate} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import Header from "../components/ui/Header";
 
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -40,7 +41,6 @@ export default function ReactionGame() {
       console.log(`Joined lobby room from ReactionGame: ${lobbyId}`);
     }
   }, [lobbyId]);
-  
 
   // Protocol A: localStorage key
   const storageKey = `reactionGame_${userId}`;
@@ -169,39 +169,22 @@ export default function ReactionGame() {
       console.log("All done =>", payload);
     });
 
-    // const handleRoundFinalized = () => {
-    //   setTimeout(() => {
-    //     navigate("/SequenceMemory");
-    //   }, 3000); // Wait 3 seconds
-    // };
-
-    // socket.on("round-finalized", handleRoundFinalized);
-
     socket.on("round-finalized", () => {
       console.log("Round finalized received");
       setGameDone(true);
+      // Navigate immediately when round is finalized
+      navigate("/sequencegame");
     });
 
     return () => {
       socket.off("reaction-progress");
       socket.off("reaction-all-done");
-      // socket.off("round-finalized", handleRoundFinalized); "reaction-go-leaderboard" or round-finalized
       socket.off("round-finalized");
     };
-  }, []);
-
-  useEffect(() => {
-    if (gameDone) {
-      const timer = setTimeout(() => {
-        navigate("/SequenceMemoryGame");
-      }, 3000); // 3-second delay
-      return () => clearTimeout(timer);
-    }
-  }, [gameDone, navigate]);
-  
+  }, [navigate]);
 
   function handleEndOfColorCycle() {
-    // If the user has not done the correct action by now, that’s a fail
+    // If the user has not done the correct action by now, that's a fail
     setHasSucceededThisCycle(false);
     let success = color === "green" ? isHolding : !isHolding;
 
@@ -249,7 +232,8 @@ export default function ReactionGame() {
     }
 
     const sum = reactionTimes.reduce((acc, val) => acc + val, 0);
-    const avgMs = reactionTimes.length > 0 ? sum / reactionTimes.length : 999999;
+    const avgMs =
+      reactionTimes.length > 0 ? sum / reactionTimes.length : 999999;
     const avgSec = parseFloat((avgMs / 1000).toFixed(3));
 
     const isOut = !success;
@@ -261,6 +245,9 @@ export default function ReactionGame() {
       avgReactionSec: avgSec,
       username,
     });
+
+    // Emit round-finalized event to trigger navigation
+    socket.emit("round-finalized");
 
     // Protocol A: clear saved state on game end
     localStorage.removeItem(storageKey);
@@ -327,17 +314,7 @@ export default function ReactionGame() {
   if (gamePhase === "pregame") {
     return (
       <div className="min-h-screen flex flex-col bg-gray-100">
-        {/* Nav */}
-        <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
-          <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
-          <div className="flex items-center space-x-4">
-            <span className="text-xl font-bold"></span>
-            <img
-              alt="Profile"
-              className="w-10 h-10 rounded-full border-2 border-gray-500"
-            />
-          </div>
-        </header>
+        <Header />
 
         <main className="flex flex-col items-center justify-center flex-1 p-4">
           <h2 className="text-3xl font-bold mb-4">RED LIGHT GREEN LIGHT</h2>
@@ -381,16 +358,7 @@ export default function ReactionGame() {
   if (gamePhase === "done") {
     return (
       <div className="min-h-screen flex flex-col bg-gray-100">
-        <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
-          <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
-          <div className="flex items-center space-x-4">
-            <span className="text-xl font-bold"></span>
-            <img
-              alt="Profile"
-              className="w-10 h-10 rounded-full border-2 border-gray-500"
-            />
-          </div>
-        </header>
+        <Header />
 
         <main className="flex flex-col items-center justify-center flex-1 p-4">
           <h2 className="text-3xl font-bold mb-2">RED LIGHT GREEN LIGHT</h2>
@@ -403,16 +371,7 @@ export default function ReactionGame() {
   // IN-GAME
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
-      <header className="w-full bg-gray-300 py-4 px-6 flex justify-between items-center">
-        <h1 className="text-2xl font-bold tracking-wide">LAST MAN PLAYING</h1>
-        <div className="flex items-center space-x-4">
-          <span className="text-xl font-bold"></span>
-          <img
-            alt="Profile"
-            className="w-10 h-10 rounded-full border-2 border-gray-500"
-          />
-        </div>
-      </header>
+      <Header />
 
       <main className="flex flex-col items-center justify-center flex-1 p-4">
         <h2 className="text-3xl font-bold mb-2">RED LIGHT GREEN LIGHT</h2>
@@ -457,7 +416,7 @@ export default function ReactionGame() {
                 marginRight: 5,
               }}
             >
-                X
+              X
             </span>
           ))}
         </div>

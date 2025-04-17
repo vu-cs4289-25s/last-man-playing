@@ -7,7 +7,7 @@ import { socket } from "../lib/socket";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/ui/Header";
 
-const GAME_TIMER = 10;
+const GAME_TIMER = 15;
 
 export default function TypingGame() {
   const textToType =

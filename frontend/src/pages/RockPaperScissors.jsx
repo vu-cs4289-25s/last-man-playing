@@ -13,7 +13,7 @@ import { useNavigate } from "react-router-dom";
 import Header from "../components/ui/Header";
 
 const TOTAL_ROUNDS = 3;
-const GAME_TIMER = 10; // ⬅️ 10‑second global clock
+const GAME_TIMER = 15; // ⬅️ 10‑second global clock
 const MOVES = ["rock", "paper", "scissors"];
 const EMOJI = { rock: "✊", paper: "✋", scissors: "✌️" };
 
@@ -44,7 +44,13 @@ export default function RockPaperScissors() {
     const saved = localStorage.getItem(storageKey);
     if (saved) {
       try {
-        const { round: r, wins: w, ties: t, timeLeft: tl, finished: f } = JSON.parse(saved);
+        const {
+          round: r,
+          wins: w,
+          ties: t,
+          timeLeft: tl,
+          finished: f,
+        } = JSON.parse(saved);
         setRound(r);
         setWins(w);
         setTies(t);

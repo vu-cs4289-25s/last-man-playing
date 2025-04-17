@@ -4,8 +4,9 @@ import { Progress } from "../components/ui/progress";
 import { Label } from "../components/ui/label";
 import { socket } from "../lib/socket";
 import { useNavigate } from "react-router-dom";
+import Header from "../components/ui/Header";
 
-const GAME_TIMER = 60;
+const GAME_TIMER = 15;
 const GRID_SIZE = 9;
 
 export default function SequenceMemoryGame() {
@@ -28,7 +29,7 @@ export default function SequenceMemoryGame() {
   const [gameOver, setGameOver] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
 
-  // [ADDED] A flag to track whether we’ve restored from storage yet
+  // [ADDED] A flag to track whether we've restored from storage yet
   const [initialized, setInitialized] = useState(false);
 
   // ========== Effects ==========
@@ -47,7 +48,9 @@ export default function SequenceMemoryGame() {
 
   // [ADDED] Load state from localStorage on mount
   useEffect(() => {
-    const savedStateJSON = localStorage.getItem(`sequenceMemory_${roundId}_${myUserId}`);
+    const savedStateJSON = localStorage.getItem(
+      `sequenceMemory_${roundId}_${myUserId}`
+    );
     if (savedStateJSON) {
       try {
         const savedState = JSON.parse(savedStateJSON);
@@ -72,13 +75,12 @@ export default function SequenceMemoryGame() {
     // If no saved state, generate a new sequence for level 1
     generateNewSequence(1);
     setInitialized(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
 
   // [ADDED] Each time any relevant state changes, save it to localStorage
   useEffect(() => {
-    // If we haven’t initialized, skip saving so we don’t overwrite a real saved state
+    // If we haven't initialized, skip saving so we don't overwrite a real saved state
     if (!initialized) return;
 
     const stateToSave = {
@@ -91,7 +93,10 @@ export default function SequenceMemoryGame() {
       gameOver,
       finalScore,
     };
-    localStorage.setItem(`sequenceMemory_${roundId}_${myUserId}`, JSON.stringify(stateToSave));
+    localStorage.setItem(
+      `sequenceMemory_${roundId}_${myUserId}`,
+      JSON.stringify(stateToSave)
+    );
   }, [
     timeLeft,
     currentLevel,
@@ -130,18 +135,21 @@ export default function SequenceMemoryGame() {
   useEffect(() => {
     if (!initialized) return;
     if (gameOver) {
+      // Try to submit score, but don't block navigation if it fails
       submitScoreToServer(finalScore)
         .then(() => {
           if (myUserId === lobbyLeaderId) {
-            finalizeRoundOnServer(finalScore)
-              .then(() => navigate("/leaderboard"))
-              .catch((err) => console.error("Error finalizing round:", err));
-          } else {
-            console.log("Score submitted. Waiting for leader to finalize...");
+            finalizeRoundOnServer(finalScore).catch((err) =>
+              console.error("Error finalizing round:", err)
+            );
           }
         })
         .catch((err) => {
           console.error("Error submitting score:", err);
+        })
+        .finally(() => {
+          // Always navigate to leaderboard when game is over
+          navigate("/leaderboard");
         });
     }
   }, [gameOver, finalScore, myUserId, lobbyLeaderId, navigate, initialized]);
@@ -151,7 +159,9 @@ export default function SequenceMemoryGame() {
     if (!initialized) return;
 
     const handleRoundFinalized = () => {
-      console.log("Received round-finalized event (SequenceGame). Navigating...");
+      console.log(
+        "Received round-finalized event (SequenceGame). Navigating..."
+      );
       navigate("/leaderboard");
     };
     socket.on("round-finalized", handleRoundFinalized);
@@ -225,20 +235,26 @@ export default function SequenceMemoryGame() {
 
     // Clear saved local state so refresh won't replay the ended game
     localStorage.removeItem(`sequenceMemory_${roundId}_${myUserId}`);
+
+    // Emit round-finalized event to trigger navigation
+    socket.emit("round-finalized");
   }
 
   // ========== Scoring & Round Finalization ==========
 
   async function submitScoreToServer(score) {
     try {
-      const res = await fetch(`api/games/${gameId}/round/${roundId}/submitScore`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: myUserId,
-          score: score,
-        }),
-      });
+      const res = await fetch(
+        `api/games/${gameId}/round/${roundId}/submitScore`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: myUserId,
+            score: score,
+          }),
+        }
+      );
       if (!res.ok) {
         const msg = await res.json();
         throw new Error(
@@ -281,11 +297,7 @@ export default function SequenceMemoryGame() {
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen w-full bg-gray-100">
-      <header className="w-full bg-gray-300 py-4 px-6 flex justify-center">
-        <h1 className="text-2xl font-bold tracking-wide text-center">
-          LAST MAN PLAYING
-        </h1>
-      </header>
+      <Header />
 
       <main className="flex flex-col items-center py-6 w-full max-w-2xl">
         <h2 className="text-3xl font-bold mb-4">Sequence Memory</h2>
@@ -311,9 +323,7 @@ export default function SequenceMemoryGame() {
                       border border-gray-400
                       flex items-center justify-center
                       cursor-pointer
-                      ${
-                        displayIndex === index ? "bg-yellow-300" : "bg-white"
-                      }
+                      ${displayIndex === index ? "bg-yellow-300" : "bg-white"}
                     `}
                   />
                 ))}

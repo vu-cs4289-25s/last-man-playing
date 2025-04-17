@@ -1,6 +1,6 @@
 const { compareSync } = require("bcrypt");
 const { UUID } = require("sequelize/lib/data-types");
-const {Server} = require("socket.io");
+const { Server } = require("socket.io");
 const db = require("./models");
 /************************************************
  * File: backend/socket.js
@@ -58,33 +58,36 @@ function init(server) {
 
     // Chat messages
     socket.on("chat-message", (data) => {
-      console.log("chat-message received:", data);  // log the full incoming payload
+      console.log("chat-message received:", data); // log the full incoming payload
       const { lobbyId, username, text } = data;
-    
+
       console.log(`User ${username} in lobby-${lobbyId} says: ${text}`);
-    
+
       io.to(`lobby-${lobbyId}`).emit("chat-message", {
         username,
         text,
       });
     });
-    
 
     // ReactionGame finish
     socket.on("reaction-finished", async (data) => {
-      const { lobbyId, userId, isOut, totalTimeSec, avgReactionSec, username } = data;
-      console.log('User ${userId} done with ReactionGame in lobby-${lobbyId}', data);
+      const { lobbyId, userId, isOut, totalTimeSec, avgReactionSec, username } =
+        data;
+      console.log(
+        "User ${userId} done with ReactionGame in lobby-${lobbyId}",
+        data
+      );
       if (!reactionResults[lobbyId]) {
         reactionResults[lobbyId] = {};
       }
       reactionResults[lobbyId][userId] = {
         username,
         isOut,
-        totalTimeSec, 
+        totalTimeSec,
         avgReactionSec,
       };
 
-      const lobby = await db.Lobby.findOne({where:{lobby_id: lobbyId}});
+      const lobby = await db.Lobby.findOne({ where: { lobby_id: lobbyId } });
       const totalPlayers = lobby ? lobby.num_players : 6;
       const doneCount = Object.keys(reactionResults[lobbyId]).length;
 
@@ -94,15 +97,17 @@ function init(server) {
       });
 
       if (doneCount >= totalPlayers) {
-        const resultsArr = Object.entries(reactionResults[lobbyId]).map(([uId, info]) => ({
-          userId: uId,
-          ...info
-        }));
+        const resultsArr = Object.entries(reactionResults[lobbyId]).map(
+          ([uId, info]) => ({
+            userId: uId,
+            ...info,
+          })
+        );
 
         const successes = resultsArr.filter((r) => !r.isOut);
         const fails = resultsArr.filter((r) => r.isOut);
 
-        successes.sort((a,b) => a.avgReactionSec - b.avgReactionSec);
+        successes.sort((a, b) => a.avgReactionSec - b.avgReactionSec);
         fails.sort((a, b) => b.totalTimeSec - a.totalTimeSec);
 
         const finalRanking = [...successes, ...fails];
@@ -116,13 +121,14 @@ function init(server) {
 
         io.to(`lobby-${lobbyId}`).emit("reaction-all-done", {
           finalRanking,
-          message: "All players done, game over. 5 second countdown to leaderboard..."
+          message:
+            "All players done, game over. 5 second countdown to leaderboard...",
         }); // kept to show players leaderboard before they move to next round
 
         setTimeout(() => {
           io.to(`lobby-${lobbyId}`).emit("round-finalized");
-        }, 2000); // 2 second delay before sending round finalized 
-  
+        }, 2000); // 2 second delay before sending round finalized
+
         // delete reactionResults[lobbyId];
       }
     });
@@ -155,7 +161,7 @@ function init(server) {
         winner = player2Id;
       }
 
-      // Broadcast the result 
+      // Broadcast the result
       // check if this is not adding score properly
       io.to(`lobby-${lobbyId}`).emit("rps-result", {
         player1Id,

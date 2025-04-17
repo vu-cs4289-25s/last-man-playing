@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { socket } from "../lib/socket";
 import Header from "../components/ui/Header";
 
-const GAME_TIMER = 10;
+const GAME_TIMER = 15;
 
 export default function MathGame() {
   const navigate = useNavigate();
@@ -36,7 +36,12 @@ export default function MathGame() {
     const saved = localStorage.getItem(storageKey);
     if (saved) {
       try {
-        const { question: q, score: s, timeLeft: tl, finished: f } = JSON.parse(saved);
+        const {
+          question: q,
+          score: s,
+          timeLeft: tl,
+          finished: f,
+        } = JSON.parse(saved);
         setQuestion(q);
         setScore(s);
         setTimeLeft(tl);
@@ -55,7 +60,7 @@ export default function MathGame() {
 
   useEffect(() => {
     if (lobbyId) socket.emit("join-lobby", { lobbyId });
-    socket.on("round-finalized", () => navigate("/ReactionGame"));
+    socket.on("round-finalized", () => navigate("/sequencegame"));
     return () => socket.off("round-finalized");
   }, [navigate, lobbyId]);
 
@@ -103,7 +108,7 @@ export default function MathGame() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ user_id: myUserId }),
         });
-        navigate("/ReactionGame");
+        navigate("/sequencegame");
       }
     } catch (err) {
       console.error("Error submitting math game score:", err);
@@ -128,7 +133,10 @@ export default function MathGame() {
                 <p className="text-lg mb-4">
                   {question.a} + {question.b} = ?
                 </p>
-                <form onSubmit={handleSubmit} className="flex justify-center mb-4">
+                <form
+                  onSubmit={handleSubmit}
+                  className="flex justify-center mb-4"
+                >
                   <Input
                     type="number"
                     value={answer}
