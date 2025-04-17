@@ -237,25 +237,30 @@ export default function ReactionGame() {
 
   function handleMouseDownInGame() {
     if (color === "green") {
-      if (
-        color === "green" && /*dont need repetition*/
-        (strikes === 1 || strikes === 2) &&
-        roundsCompleted === 0
-      ) {
-        // edge case
-      } else {
-        // record success
-        const reaction =
-          Date.now() - (lastColorSwitchRef.current || Date.now());
-        setReactionTimes((arr) => [...arr, reaction]);
-        setLastReactionTime(reaction);
-        setRoundsCompleted((r) => r + 1);
-        setHasSucceededThisCycle(true);
+      if (!hasSucceededThisCycle) {
+        if (
+          color === "green" &&
+          (strikes === 1 || strikes === 2) &&
+          roundsCompleted === 0
+        ) {
+          // edge case
+        } else {
+          // record success
+          const reaction =
+            Date.now() - (lastColorSwitchRef.current || Date.now());
+          setReactionTimes((arr) => [...arr, reaction]);
+          setLastReactionTime(reaction);
+          setRoundsCompleted((r) => r + 1);
+          setHasSucceededThisCycle(true);
+        }
       }
+      // Physically pressing now
       setIsHolding(true);
     } else {
+      // color=red => pressing is wrong => add strike
       addStrike();
-      setIsHolding(true);
+      // We allow multiple strikes if user presses multiple times on red
+      setIsHolding(true); // user physically pressed anyway
     }
   }
 
