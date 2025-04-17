@@ -6,23 +6,26 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { useNavigate } from "react-router-dom"; // Assumes you're using react-router for navigation
+import { useNavigate } from "react-router-dom";
 import Header from "../components/ui/Header";
+import { useUser } from "../context/UserContext";
 
 export default function Profile() {
-  const [user, setUser] = useState(null);
+  const { user, setUser } = useUser();
   const [editing, setEditing] = useState(false);
-  const [username, setUsername] = useState("");
-  const [profileImageUrl, setProfileImageUrl] = useState("");
+  const [username, setUsername] = useState(user?.username || "");
+  const [profileImageUrl, setProfileImageUrl] = useState(
+    user?.profile_image_url || ""
+  );
   const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
     if (!token) {
-      // If no token exists, redirect to login page
       navigate("/login");
       return;
     }
+
     fetch("/api/user/profile", {
       method: "GET",
       headers: {
@@ -39,13 +42,13 @@ export default function Profile() {
       })
       .then((data) => {
         if (data.user) {
-          setUser(data.user);
+          setUser(data.user); // ✅ Update context so header uses it too
           setUsername(data.user.username);
           setProfileImageUrl(data.user.profile_image_url || "");
         }
       })
       .catch((err) => console.error("Error fetching user profile", err));
-  }, [navigate]);
+  }, [navigate, setUser]);
 
   const handleSave = () => {
     const token = localStorage.getItem("authToken");
@@ -69,7 +72,7 @@ export default function Profile() {
       })
       .then((data) => {
         if (data.user) {
-          setUser(data.user);
+          setUser(data.user); // ✅ Update user in context after save
           setEditing(false);
         }
       })
@@ -85,13 +88,10 @@ export default function Profile() {
       <Header />
       <main className="flex flex-col flex-1 items-center justify-center p-4">
         <div className="flex flex-col items-center justify-start min-h-screen w-full bg-gray-100">
-          {/* Profile Section */}
           <main className="flex flex-col items-center mt-8 w-full max-w-3xl">
             <div className="flex items-center w-full px-10">
               <img
-                src={
-                  user.profile_image_url || "https://via.placeholder.com/150"
-                }
+                src={profileImageUrl || "https://placehold.co/150x150?text=U"}
                 alt="Avatar"
                 className="w-36 h-36 rounded-full border-4 border-white shadow-lg"
               />
@@ -137,10 +137,8 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Divider */}
             <div className="w-full border-t my-6"></div>
 
-            {/* Statistics Section */}
             <h3 className="text-lg font-semibold self-start px-10 mb-4">
               STATISTICS
             </h3>

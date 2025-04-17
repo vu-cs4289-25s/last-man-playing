@@ -1,19 +1,16 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useUser } from "../../../context/UserContext";
+import { useUser } from "../../context/UserContext";
 
 export default function Header() {
-  const { user, setUser } = useUser(); // Get user from context and setUser to update context
-  const navigate = useNavigate(); // To navigate programmatically
+  const { user, setUser } = useUser();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
-    // Remove token from localStorage
     localStorage.removeItem("authToken");
-
-    // Set user to null in context to update the UI
+    localStorage.removeItem("myUserId");
+    localStorage.removeItem("myUsername");
     setUser(null);
-
-    // Redirect to homepage after logout
     navigate("/");
   };
 
@@ -38,11 +35,17 @@ export default function Header() {
           <>
             <Link to="/profile" className="flex items-center space-x-2">
               <span className="text-gray-700">{user.username}</span>
-              <img
-                src={user.profile_image_url || "https://via.placeholder.com/40"}
-                alt="avatar"
-                className="w-10 h-10 rounded-full border"
-              />
+              {user.profile_image_url ? (
+                <img
+                  src={user.profile_image_url}
+                  alt="avatar"
+                  className="w-10 h-10 rounded-full border"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full border bg-gray-300 flex items-center justify-center font-semibold text-sm">
+                  {user.username[0].toUpperCase()}
+                </div>
+              )}
             </Link>
             <button
               onClick={handleLogout}

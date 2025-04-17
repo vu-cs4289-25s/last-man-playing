@@ -30,7 +30,69 @@ export default function ReactionGame() {
   const lobbyId = localStorage.getItem("lobbyId"); // || ""
   const userId = localStorage.getItem("myUserId"); // || "Guest"
   const username = localStorage.getItem("myUsername") || "Guest";
- 
+
+  // Protocol A: localStorage key
+  const storageKey = `reactionGame_${userId}`;
+
+  // Protocol A: restore state on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const s = JSON.parse(saved);
+        setGamePhase(s.gamePhase);
+        setPregameTimeLeft(s.pregameTimeLeft);
+        setGameStartTime(s.gameStartTime);
+        setFinalMessage(s.finalMessage);
+        setColor(s.color);
+        setColorCycleTimeLeft(s.colorCycleTimeLeft);
+        setRoundsCompleted(s.roundsCompleted);
+        setStrikes(s.strikes);
+        setHasSucceededThisCycle(s.hasSucceededThisCycle);
+        setIsHolding(s.isHolding);
+        setIsHovering(s.isHovering);
+        setReactionTimes(s.reactionTimes);
+        setLastReactionTime(s.lastReactionTime);
+      } catch {}
+    }
+  }, [storageKey]);
+
+  // Protocol A: save state on change
+  useEffect(() => {
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        gamePhase,
+        pregameTimeLeft,
+        gameStartTime,
+        finalMessage,
+        color,
+        colorCycleTimeLeft,
+        roundsCompleted,
+        strikes,
+        hasSucceededThisCycle,
+        isHolding,
+        isHovering,
+        reactionTimes,
+        lastReactionTime,
+      })
+    );
+  }, [
+    storageKey,
+    gamePhase,
+    pregameTimeLeft,
+    gameStartTime,
+    finalMessage,
+    color,
+    colorCycleTimeLeft,
+    roundsCompleted,
+    strikes,
+    hasSucceededThisCycle,
+    isHolding,
+    isHovering,
+    reactionTimes,
+    lastReactionTime,
+  ]);
 
   // pregame
   useEffect(() => {
@@ -76,10 +138,8 @@ export default function ReactionGame() {
     }
 
     // edit: If time for this color cycle is up, just flip color—no auto strike
-    // CHANGED
     if (colorCycleTimeLeft <= 0) {
       handleEndOfColorCycle();
-      // flipColor();
       return;
     }
 
@@ -92,12 +152,10 @@ export default function ReactionGame() {
   useEffect(() => {
     socket.on("reaction-progress", (data) => {
       console.log("Reaction progress =>", data);
-      // maybe set state like setOthersDone(data.doneCount)
     });
 
     socket.on("reaction-all-done", (payload) => {
       console.log("All done =>", payload);
-      // show final ranking or do countdown
     });
 
     socket.on("reaction-go-leaderboard", () => {
@@ -114,13 +172,7 @@ export default function ReactionGame() {
   function handleEndOfColorCycle() {
     // If the user has not done the correct action by now, that’s a fail
     setHasSucceededThisCycle(false);
-    let success = false; // no success -> no reaction time - no incrament
-
-    if (color === "green") {
-      success = isHolding; //success if isHolding===true
-    } else {
-      success = !isHolding; // success if isHolding===false
-    }
+    let success = color === "green" ? isHolding : !isHolding;
 
     if (!success) {
       addStrike();
@@ -156,20 +208,17 @@ export default function ReactionGame() {
         `You earned 3 strikes! Game over.\nYou lasted ${totalTimeSec} seconds.`
       );
     } else {
-      // 10 successes
       const sum = reactionTimes.reduce((acc, val) => acc + val, 0);
       const avgMs = sum / reactionTimes.length;
       const avgSec = (avgMs / 1000).toFixed(3);
 
       setFinalMessage(
-        `Congratulations! You completed 10 color changes.\n` +
-          `Average Reaction Time: ${avgSec} seconds.`
+        `Congratulations! You completed 10 color changes.\nAverage Reaction Time: ${avgSec} seconds.`
       );
     }
 
     const sum = reactionTimes.reduce((acc, val) => acc + val, 0);
-    const avgMs =
-      reactionTimes.length > 0 ? sum / reactionTimes.length : 999999;
+    const avgMs = reactionTimes.length > 0 ? sum / reactionTimes.length : 999999;
     const avgSec = parseFloat((avgMs / 1000).toFixed(3));
 
     const isOut = !success;
@@ -181,58 +230,41 @@ export default function ReactionGame() {
       avgReactionSec: avgSec,
       username,
     });
+
+    // Protocol A: clear saved state on game end
+    localStorage.removeItem(storageKey);
   }
 
   function handleMouseDownInGame() {
-    // If the button is green => correct to press
     if (color === "green") {
-      // Multiple fails are allowed, but only 1 success if hasn't succeeded yet
       if (!hasSucceededThisCycle) {
-        if (
-          color === "green" &&
-          (strikes === 1 || strikes === 2) &&
-          roundsCompleted === 0
-        ) {
-          // edge case
-        } else {
-          // record success
-          const reaction =
-            Date.now() - (lastColorSwitchRef.current || Date.now());
-          setReactionTimes((arr) => [...arr, reaction]);
-          setLastReactionTime(reaction);
-          setRoundsCompleted((r) => r + 1);
-          setHasSucceededThisCycle(true);
-        }
-      }
-      // Physically pressing now
-      setIsHolding(true);
-    } else {
-      // color=red => pressing is wrong => add strike
-      addStrike();
-      // We allow multiple strikes if user presses multiple times on red
-      setIsHolding(true); // user physically pressed anyway
-    }
-  }
-
-  function handleMouseUpInGame() {
-    // If the button is red => correct to let go
-    if (color === "red") {
-      if (!hasSucceededThisCycle) {
-        // Record success
         const reaction =
           Date.now() - (lastColorSwitchRef.current || Date.now());
         setReactionTimes((arr) => [...arr, reaction]);
         setLastReactionTime(reaction);
         setRoundsCompleted((r) => r + 1);
-
         setHasSucceededThisCycle(true);
       }
-      // physically let go
+      setIsHolding(true);
+    } else {
+      addStrike();
+      setIsHolding(true);
+    }
+  }
+
+  function handleMouseUpInGame() {
+    if (color === "red") {
+      if (!hasSucceededThisCycle) {
+        const reaction =
+          Date.now() - (lastColorSwitchRef.current || Date.now());
+        setReactionTimes((arr) => [...arr, reaction]);
+        setLastReactionTime(reaction);
+        setRoundsCompleted((r) => r + 1);
+        setHasSucceededThisCycle(true);
+      }
       setIsHolding(false);
     } else {
-      // color=green => letting go is wrong => strike
       addStrike();
-      // If the user repeatedly lets go on green, that can be multiple strikes
       setIsHolding(false);
     }
   }
@@ -242,7 +274,6 @@ export default function ReactionGame() {
   const normalRed = "#FF0000";
   const darkRed = "#AA0000";
 
-  // "Wait" means user is pressing => darkaer color
   let buttonBgColor;
   if (color === "green") {
     buttonBgColor = isHolding ? darkGreen : normalGreen;
@@ -383,7 +414,7 @@ export default function ReactionGame() {
                 marginRight: 5,
               }}
             >
-              X
+                X
             </span>
           ))}
         </div>
@@ -391,5 +422,3 @@ export default function ReactionGame() {
     </div>
   );
 }
-
-// IT WORKS!!
