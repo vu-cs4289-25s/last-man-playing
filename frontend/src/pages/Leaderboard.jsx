@@ -41,7 +41,7 @@ export default function Leaderboard() {
         const sorted = data.scores.sort((a, b) => b.score - a.score);
         // lazy way will fix later
         const playersMap = sorted.map((player) => ({
-          name: player.user_id,
+          name: player.username,
           score: player.score,
         }));
         setPlayers(playersMap);
@@ -51,7 +51,6 @@ export default function Leaderboard() {
         console.error(`Error fetching scores: ${error}`);
       });
   }, [gameId, roundId]);
-
 
   // const players = [
   //     { name: "Player 1", score: 750 },
@@ -70,20 +69,8 @@ export default function Leaderboard() {
       {/* MAIN content: centered store + board, with pr-[350px] for pinned chat */}
       <main className="pt-6 px-4 pr-[350px] flex flex-col items-center">
         <div className="w-full max-w-5xl flex gap-8">
-          {/* Left: store */}
-          <div className="w-1/4">
-            <Card className="bg-gray-700 p-4">
-              <h3 className="text-white text-lg font-bold mb-4 text-center">
-                Store
-              </h3>
-              {storeItems.map((item, index) => (
-                <StorePurchase key={index} points={item.points} />
-              ))}
-            </Card>
-          </div>
-
           {/* Middle: leaderboard */}
-          <div className="w-2/4">
+          <div className="w-3/4">
             <Card>
               <CardContent>
                 <h2 className="text-xl font-bold mb-4 text-center">
