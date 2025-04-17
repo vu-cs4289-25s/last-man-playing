@@ -11,21 +11,23 @@ import {
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import Header from "../components/ui/Header";
+import { useUser } from "../context/UserContext";
 
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const navigate = useNavigate();
+  const { setUser } = useUser();
 
-  // frontend/src/pages/Login.jsx
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
     try {
+      console.log("Attempting login...");
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -37,21 +39,27 @@ export default function Login() {
         setError(errorData.message || "Login failed");
         return;
       }
+
       const data = await response.json();
+      console.log("Login successful:", data);
       setSuccess("Logged in successfully!");
 
-      // Save both token and user_id to localStorage
-      if (data.token && data.user_id) {
-        localStorage.setItem("authToken", data.token);
-        localStorage.setItem("myUserId", data.user_id);
-        // localStorage.setItem("myUsername", data.username); // store username in local storage
-      }
-      if (data.username) {
-        localStorage.setItem("myUsername", data.username); // why here umm
-      }
-      window.location.href = "/lobbies";
+      // Store user in localStorage
+      localStorage.setItem("authToken", data.token);
+      localStorage.setItem("myUserId", data.user_id);
+      localStorage.setItem("myUsername", data.username);
+
+      // Update UserContext and navigate
+      setUser({
+        id: data.user_id,
+        username: data.username,
+        token: data.token,
+      });
+
+      console.log("Navigating to lobbies...");
+      navigate("/lobbies", { replace: true });
     } catch (error) {
-      console.error("Login error:" + error);
+      console.error("Login error:", error);
       setError("An error occurred. Please try again.");
     }
   };
@@ -61,15 +69,12 @@ export default function Login() {
       <Header />
       <main className="flex flex-col flex-1 items-center justify-center p-4">
         <Card className="w-[450px] shadow-lg rounded-lg">
-          {/* Login Title */}
           <CardHeader>
             <CardTitle className="text-center text-2xl font-bold">
               LOG IN
             </CardTitle>
           </CardHeader>
-
           <CardContent>
-            {/* Input Fields */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="flex flex-col">
                 <label htmlFor="username" className="text-sm font-medium">
@@ -80,9 +85,9 @@ export default function Login() {
                   placeholder="Enter your username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  autoComplete="username"
                 />
               </div>
-
               <div className="flex flex-col">
                 <label htmlFor="password" className="text-sm font-medium">
                   Password
@@ -93,14 +98,15 @@ export default function Login() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
                 />
               </div>
-
               {error && <p className="text-red-500">{error}</p>}
               {success && <p className="text-green-500">{success}</p>}
-
-              {/* Submit Button */}
-              <Button className="w-full bg-[#0D1117] text-white hover:bg-[#161B22]">
+              <Button
+                type="submit"
+                className="w-full bg-[#0D1117] text-white hover:bg-[#161B22]"
+              >
                 Login
               </Button>
             </form>
