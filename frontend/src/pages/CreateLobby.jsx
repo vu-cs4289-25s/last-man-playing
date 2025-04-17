@@ -65,6 +65,8 @@ export default function CreateLobby() {
         let leader = localStorage.getItem("myUserId");
         localStorage.setItem("lobbyLeaderId", leader);
         localStorage.setItem("lobbyId", data.lobby.lobby_id);
+        localStorage.setItem("lobbyName", data.lobby.lobby_name);
+        localStorage.setItem("maxPlayers", String(maxPlayers));
 
         navigate("/loadinglobby");
       } else {

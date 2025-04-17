@@ -53,7 +53,7 @@ export default function ReactionGame() {
     setGamePhase("ingame");
     setGameStartTime(Date.now());
 
-    const duration = randomInt(5, 10); // 5 - 11 secs for color change
+    const duration = randomInt(3, 7); // 3 - 7 secs for color change
     setColorCycleTimeLeft(duration);
     lastColorSwitchRef.current = Date.now();
 
@@ -129,7 +129,7 @@ export default function ReactionGame() {
     // flip color
     const newColor = color === "green" ? "red" : "green";
     setColor(newColor);
-    const duration = randomInt(5, 10);
+    const duration = randomInt(3, 7);
     setColorCycleTimeLeft(duration);
     lastColorSwitchRef.current = Date.now();
   }

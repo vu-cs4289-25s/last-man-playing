@@ -136,7 +136,7 @@ exports.joinLobby = async (req, res) => {
 
     // Check if lobby is full - should be max for lobby
     const participantCount = await db.LobbyParticipants.count({ where: { lobby_id } });
-    if (participantCount >= 6) {
+    if (participantCount >= lobby.max_players) {
       return res.status(401).json({ message: 'Lobby is full' });
     }
 
