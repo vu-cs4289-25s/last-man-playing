@@ -3,7 +3,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import HowToPlay from "./pages/HowToPlay";
-import Profile from "./pages/Profile"; // <-- Import Profile Page
+import Profile from "./pages/Profile";
 import "./index.css";
 import Leaderboard from "./pages/Leaderboard";
 import LoadingLobby from "./pages/LoadingLobby";
@@ -13,6 +13,7 @@ import ReactionGame from "./pages/ReactionGame";
 import RockPaperScissors from "./pages/RockPaperScissors";
 import TypingGame from "./pages/TypingGame.jsx";
 import MathBlitz from "./pages/MathBlitz";
+import SequenceMemoryGame from "./pages/SequenceMemoryGame.jsx";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
@@ -102,6 +103,12 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/sequencegame"
+          element={
+            <ProtectedRoute>
+              <SequenceMemoryGame />
+            </ProtectedRoute>
       </Routes>
     </Router>
   );
