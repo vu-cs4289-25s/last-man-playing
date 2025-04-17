@@ -164,7 +164,11 @@ export default function LoadingLobby() {
 
       {error && (
         <div className="absolute top-[64px] w-full flex justify-center z-20">
-          <ErrorAlert message={error} className="max-w-lg" />
+          <ErrorAlert 
+            message={error} 
+            className="mb-4" 
+            onClose={() => setError("")} 
+          />          
         </div>
       )}
 

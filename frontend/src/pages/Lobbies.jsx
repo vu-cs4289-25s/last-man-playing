@@ -129,7 +129,13 @@ export default function Lobbies() {
           </CardHeader>
 
           <CardContent>
-          {error && <ErrorAlert message={error} className="mb-4" />}
+          {error && (
+           <ErrorAlert 
+             message={error} 
+             className="mb-4" 
+             onClose={() => setError("")} 
+           />
+           )}
             <div className="mb-4">
               <Input
                 type="text"
