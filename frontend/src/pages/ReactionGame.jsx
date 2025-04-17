@@ -237,7 +237,14 @@ export default function ReactionGame() {
 
   function handleMouseDownInGame() {
     if (color === "green") {
-      if (!hasSucceededThisCycle) {
+      if (
+        color === "green" && /*dont need repetition*/
+        (strikes === 1 || strikes === 2) &&
+        roundsCompleted === 0
+      ) {
+        // edge case
+      } else {
+        // record success
         const reaction =
           Date.now() - (lastColorSwitchRef.current || Date.now());
         setReactionTimes((arr) => [...arr, reaction]);
