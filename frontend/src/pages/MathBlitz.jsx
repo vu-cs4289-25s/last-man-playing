@@ -22,11 +22,36 @@ export default function MathGame() {
   const lobbyId = localStorage.getItem("lobbyId");
   const leaderId = localStorage.getItem("lobbyLeaderId");
 
+  // ───────────── Protocol A key ─────────────
+  const storageKey = `mathBlitz_${roundId}_${myUserId}`;
+
   const [question, setQuestion] = useState(generateQuestion());
   const [answer, setAnswer] = useState("");
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(GAME_TIMER);
   const [finished, setFinished] = useState(false);
+
+  // ───────────── Protocol A: restore on mount ─────────────
+  useEffect(() => {
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const { question: q, score: s, timeLeft: tl, finished: f } = JSON.parse(saved);
+        setQuestion(q);
+        setScore(s);
+        setTimeLeft(tl);
+        setFinished(f);
+      } catch {}
+    }
+  }, [storageKey]);
+
+  // ───────────── Protocol A: save on change ─────────────
+  useEffect(() => {
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify({ question, score, timeLeft, finished })
+    );
+  }, [storageKey, question, score, timeLeft, finished]);
 
   useEffect(() => {
     if (lobbyId) socket.emit("join-lobby", { lobbyId });
@@ -59,7 +84,12 @@ export default function MathGame() {
   }
 
   async function endGame() {
+    if (finished) return;
     setFinished(true);
+
+    // ───────────── Protocol A: clear saved state on game end ─────────────
+    localStorage.removeItem(storageKey);
+
     try {
       await fetch(`/api/games/${gameId}/round/${roundId}/submitScore`, {
         method: "POST",
@@ -98,10 +128,7 @@ export default function MathGame() {
                 <p className="text-lg mb-4">
                   {question.a} + {question.b} = ?
                 </p>
-                <form
-                  onSubmit={handleSubmit}
-                  className="flex justify-center mb-4"
-                >
+                <form onSubmit={handleSubmit} className="flex justify-center mb-4">
                   <Input
                     type="number"
                     value={answer}

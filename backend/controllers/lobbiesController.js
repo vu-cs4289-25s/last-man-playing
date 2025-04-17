@@ -5,6 +5,61 @@ const db = require('../models');
 const { v4: uuidv4 } = require('uuid');
 const { getIO } = require('../socket'); // if you want to broadcast from here
 
+// GET /api/lobbies/private/:id
+exports.getPrivateLobby = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { password } = req.body;          // you’ll need to send { password } in the body
+    const userId = req.user?.userId;        // if you’re using auth middleware
+
+    // 1) Find the private lobby
+    const lobby = await db.Lobby.findOne({ 
+      where: { lobby_id: id, is_private: true } 
+    });
+    if (!lobby) {
+      return res.status(404).json({ message: 'Private lobby not found' });
+    }
+
+    // 2) If user is already in the lobby, skip password check
+    let isMember = false;
+    if (userId) {
+      const existing = await db.LobbyParticipants.findOne({
+        where: { lobby_id: id, user_id: userId }
+      });
+      isMember = Boolean(existing);
+    }
+
+    // 3) If not a member, require correct password
+    if (!isMember) {
+      if (!password) {
+        return res.status(401).json({ message: 'Password is required' });
+      }
+      if (lobby.password !== password) {
+        return res.status(401).json({ message: 'Incorrect password' });
+      }
+    }
+
+    // 4) Fetch participants (including usernames)
+    const participants = await db.LobbyParticipants.findAll({
+      where: { lobby_id: id },
+      include: [{
+        model: db.User,
+        attributes: ['user_id', 'username']
+      }]
+    });
+    const players = participants.map(p => ({
+      user_id: p.User.user_id,
+      username: p.User.username
+    }));
+
+    // 5) Return lobby + participants
+    return res.status(200).json({ lobby, players });
+  } catch (error) {
+    console.error('Error in getPrivateLobby:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 exports.getPublicLobbies = async (req, res) => {
   try {
     // Return all non-private lobbies

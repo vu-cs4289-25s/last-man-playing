@@ -2,7 +2,7 @@
 
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
-import Header from "../components/ui/header";
+import Header from "../components/ui/Header";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -26,9 +26,6 @@ export default function Home() {
             </Button>
             <Button className="w-full" onClick={() => navigate("/how-to-play")}>
               HOW TO PLAY
-            </Button>
-            <Button className="w-full" onClick={() => navigate("/profile")}>
-              PROFILE
             </Button>
           </div>
         </div>
