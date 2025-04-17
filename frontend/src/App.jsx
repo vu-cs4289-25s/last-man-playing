@@ -109,6 +109,8 @@ export default function App() {
             <ProtectedRoute>
               <SequenceMemoryGame />
             </ProtectedRoute>
+        }
+        />
       </Routes>
     </Router>
   );
