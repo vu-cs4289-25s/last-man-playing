@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { socket } from "../lib/socket";
+import {useNavigate} from "react-router-dom";
 
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -14,7 +15,7 @@ export default function ReactionGame() {
   const [color, setColor] = useState("green"); // "green" => hold, "red" => release
   const [colorCycleTimeLeft, setColorCycleTimeLeft] = useState(0);
 
-  const [roundsCompleted, setRoundsCompleted] = useState(0); // need 10 successes
+  const [roundsCompleted, setRoundsCompleted] = useState(0); // need 5 successes
   const [strikes, setStrikes] = useState(0); // 3 => out
   const [hasSucceededThisCycle, setHasSucceededThisCycle] = useState(false);
 
@@ -24,12 +25,22 @@ export default function ReactionGame() {
   // Reaction times
   const [reactionTimes, setReactionTimes] = useState([]);
   const [lastReactionTime, setLastReactionTime] = useState(null);
+  const [gameDone, setGameDone] = useState(false);
 
   // timestamp of last color flip
+  const navigate = useNavigate();
   const lastColorSwitchRef = useRef(null);
   const lobbyId = localStorage.getItem("lobbyId"); // || ""
   const userId = localStorage.getItem("myUserId"); // || "Guest"
   const username = localStorage.getItem("myUsername") || "Guest";
+
+  useEffect(() => {
+    if (lobbyId) {
+      socket.emit("join-lobby", { lobbyId });
+      console.log(`Joined lobby room from ReactionGame: ${lobbyId}`);
+    }
+  }, [lobbyId]);
+  
 
   // Protocol A: localStorage key
   const storageKey = `reactionGame_${userId}`;
@@ -115,7 +126,7 @@ export default function ReactionGame() {
     setGamePhase("ingame");
     setGameStartTime(Date.now());
 
-    const duration = randomInt(3, 7); // 3 - 7 secs for color change
+    const duration = randomInt(2, 6); // 2 - 6 secs for color change
     setColorCycleTimeLeft(duration);
     lastColorSwitchRef.current = Date.now();
 
@@ -132,7 +143,7 @@ export default function ReactionGame() {
       endGame(false);
       return;
     }
-    if (roundsCompleted >= 10) {
+    if (roundsCompleted >= 5) {
       endGame(true);
       return;
     }
@@ -158,16 +169,36 @@ export default function ReactionGame() {
       console.log("All done =>", payload);
     });
 
-    socket.on("reaction-go-leaderboard", () => {
-      // e.g. navigate("/leaderboard");
+    // const handleRoundFinalized = () => {
+    //   setTimeout(() => {
+    //     navigate("/SequenceMemory");
+    //   }, 3000); // Wait 3 seconds
+    // };
+
+    // socket.on("round-finalized", handleRoundFinalized);
+
+    socket.on("round-finalized", () => {
+      console.log("Round finalized received");
+      setGameDone(true);
     });
 
     return () => {
       socket.off("reaction-progress");
       socket.off("reaction-all-done");
-      socket.off("reaction-go-leaderboard");
+      // socket.off("round-finalized", handleRoundFinalized); "reaction-go-leaderboard" or round-finalized
+      socket.off("round-finalized");
     };
   }, []);
+
+  useEffect(() => {
+    if (gameDone) {
+      const timer = setTimeout(() => {
+        navigate("/SequenceMemoryGame");
+      }, 3000); // 3-second delay
+      return () => clearTimeout(timer);
+    }
+  }, [gameDone, navigate]);
+  
 
   function handleEndOfColorCycle() {
     // If the user has not done the correct action by now, that’s a fail
@@ -181,7 +212,7 @@ export default function ReactionGame() {
     // flip color
     const newColor = color === "green" ? "red" : "green";
     setColor(newColor);
-    const duration = randomInt(3, 7);
+    const duration = randomInt(2, 6);
     setColorCycleTimeLeft(duration);
     lastColorSwitchRef.current = Date.now();
   }
@@ -213,7 +244,7 @@ export default function ReactionGame() {
       const avgSec = (avgMs / 1000).toFixed(3);
 
       setFinalMessage(
-        `Congratulations! You completed 10 color changes.\nAverage Reaction Time: ${avgSec} seconds.`
+        `Congratulations! You completed 5 color changes.\nAverage Reaction Time: ${avgSec} seconds.`
       );
     }
 
@@ -386,7 +417,7 @@ export default function ReactionGame() {
       <main className="flex flex-col items-center justify-center flex-1 p-4">
         <h2 className="text-3xl font-bold mb-2">RED LIGHT GREEN LIGHT</h2>
 
-        <p>Color Changes Completed: {roundsCompleted}/10</p>
+        <p>Color Changes Completed: {roundsCompleted}/5</p>
         <p>Strikes: {strikes}/3</p>
 
         {lastReactionTime && (

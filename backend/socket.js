@@ -117,11 +117,11 @@ function init(server) {
         io.to(`lobby-${lobbyId}`).emit("reaction-all-done", {
           finalRanking,
           message: "All players done, game over. 5 second countdown to leaderboard..."
-        });
+        }); // kept to show players leaderboard before they move to next round
 
         setTimeout(() => {
-          io.to(`lobby-${lobbyId}`).emit("reaction-go-leaderboard");
-        }, 5000);
+          io.to(`lobby-${lobbyId}`).emit("round-finalized");
+        }, 2000); // 2 second delay before sending round finalized 
   
         // delete reactionResults[lobbyId];
       }
@@ -155,7 +155,8 @@ function init(server) {
         winner = player2Id;
       }
 
-      // Broadcast the result
+      // Broadcast the result 
+      // check if this is not adding score properly
       io.to(`lobby-${lobbyId}`).emit("rps-result", {
         player1Id,
         player1Move: p1Move,

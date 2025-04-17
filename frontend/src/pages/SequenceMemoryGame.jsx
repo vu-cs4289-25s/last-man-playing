@@ -134,7 +134,7 @@ export default function SequenceMemoryGame() {
         .then(() => {
           if (myUserId === lobbyLeaderId) {
             finalizeRoundOnServer(finalScore)
-              .then(() => navigate("/rps"))
+              .then(() => navigate("/leaderboard"))
               .catch((err) => console.error("Error finalizing round:", err));
           } else {
             console.log("Score submitted. Waiting for leader to finalize...");
@@ -152,7 +152,7 @@ export default function SequenceMemoryGame() {
 
     const handleRoundFinalized = () => {
       console.log("Received round-finalized event (SequenceGame). Navigating...");
-      navigate("/rps");
+      navigate("/leaderboard");
     };
     socket.on("round-finalized", handleRoundFinalized);
 
